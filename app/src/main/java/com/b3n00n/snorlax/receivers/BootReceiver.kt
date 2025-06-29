@@ -1,9 +1,10 @@
-package com.b3n00n.snorlax
+package com.b3n00n.snorlax.receivers
 
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import com.b3n00n.snorlax.services.RemoteClientService
 
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {

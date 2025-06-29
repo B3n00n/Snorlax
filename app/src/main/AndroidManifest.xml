@@ -4,6 +4,7 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" tools:ignore="QueryAllPackagesPermission" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
@@ -29,12 +30,12 @@
         </activity>
 
         <service
-            android:name=".RemoteClientService"
+            android:name=".services.RemoteClientService"
             android:enabled="true"
             android:exported="false" />
 
         <receiver
-            android:name=".BootReceiver"
+            android:name=".receivers.BootReceiver"
             android:enabled="true"
             android:exported="true"
             android:permission="android.permission.RECEIVE_BOOT_COMPLETED">

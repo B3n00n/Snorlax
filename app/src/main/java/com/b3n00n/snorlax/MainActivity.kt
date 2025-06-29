@@ -3,6 +3,7 @@ package com.b3n00n.snorlax
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import com.b3n00n.snorlax.services.RemoteClientService
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
