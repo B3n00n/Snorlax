@@ -29,6 +29,8 @@ class CommandHandler(
         registerHandler(GetInstalledAppsHandler(context))
         registerHandler(BatteryStatusHandler(context))
         registerHandler(ShellCommandHandler())
+        registerHandler(ShutdownHandler(context))
+        registerHandler(PingHandler(context))
     }
 
     private fun registerHandler(handler: MessageHandler) {
