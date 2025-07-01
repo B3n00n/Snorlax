@@ -67,7 +67,8 @@ class RemoteClientService : Service(), ConnectionManager.ConnectionListener {
 
     private fun sendDeviceInfo() {
         try {
-            val deviceInfo = DeviceInfo()
+            // Pass the service context to DeviceInfo
+            val deviceInfo = DeviceInfo(this)
 
             val writer = PacketWriter()
             writer.writeU8(MessageType.DEVICE_CONNECTED.toInt())
