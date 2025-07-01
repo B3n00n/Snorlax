@@ -29,7 +29,6 @@ class CommandHandler(
         registerHandler(GetInstalledAppsHandler(context))
         registerHandler(BatteryStatusHandler(context))
         registerHandler(ShellCommandHandler())
-        registerHandler(ShutdownHandler(context))
         registerHandler(PingHandler(context))
     }
 
@@ -82,16 +81,12 @@ class CommandHandler(
 
     fun sendBatteryStatus(
         headset: Int,
-        leftController: Int,
-        rightController: Int,
         isCharging: Boolean
     ) {
         try {
             val writer = PacketWriter()
             writer.writeU8(MessageType.BATTERY_STATUS.toInt())
             writer.writeU8(headset)
-            writer.writeU8(leftController)
-            writer.writeU8(rightController)
             writer.writeU8(if (isCharging) 1 else 0)
             connectionManager.sendData(writer.toByteArray())
         } catch (e: IOException) {

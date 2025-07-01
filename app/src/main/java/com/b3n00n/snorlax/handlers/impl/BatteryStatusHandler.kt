@@ -24,8 +24,6 @@ class BatteryStatusHandler(private val context: Context) : MessageHandler {
 
             commandHandler.sendBatteryStatus(
                 batteryInfo.headsetLevel,
-                batteryInfo.leftControllerLevel,
-                batteryInfo.rightControllerLevel,
                 batteryInfo.isCharging
             )
         } catch (e: Exception) {

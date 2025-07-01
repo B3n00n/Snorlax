@@ -10,7 +10,6 @@ object MessageType {
 
     // Server to Client
     const val LAUNCH_APP: Byte = 0x10
-    const val SHUTDOWN_DEVICE: Byte = 0x11
     const val EXECUTE_SHELL: Byte = 0x12
     const val REQUEST_BATTERY: Byte = 0x13
     const val GET_INSTALLED_APPS: Byte = 0x14
