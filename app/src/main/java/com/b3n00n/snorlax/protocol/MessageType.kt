@@ -15,4 +15,5 @@ object MessageType {
     const val GET_INSTALLED_APPS: Byte = 0x14
     const val GET_DEVICE_INFO: Byte = 0x15
     const val PING: Byte = 0x16
+    const val DOWNLOAD_AND_INSTALL_APK: Byte = 0x17
 }

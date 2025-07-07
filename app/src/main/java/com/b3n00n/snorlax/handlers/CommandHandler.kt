@@ -30,6 +30,7 @@ class CommandHandler(
         registerHandler(BatteryStatusHandler(context))
         registerHandler(ShellCommandHandler())
         registerHandler(PingHandler(context))
+        registerHandler(DownloadAndInstallApkHandler(context))
     }
 
     private fun registerHandler(handler: MessageHandler) {

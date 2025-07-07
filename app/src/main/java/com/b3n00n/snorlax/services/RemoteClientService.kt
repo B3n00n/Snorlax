@@ -23,7 +23,7 @@ import java.io.IOException
 class RemoteClientService : Service(), ConnectionManager.ConnectionListener {
     companion object {
         private const val TAG = "RemoteClientService"
-        private const val SERVER_IP = "192.168.50.123"
+        private const val SERVER_IP = "192.168.50.124"
         private const val SERVER_PORT = 8888
         private const val NOTIFICATION_ID = 1
         private const val CHANNEL_ID = "snorlax_service_channel"
@@ -35,7 +35,7 @@ class RemoteClientService : Service(), ConnectionManager.ConnectionListener {
 
     private var heartbeatHandler: Handler? = null
     private var heartbeatRunnable: Runnable? = null
-    private val heartbeatInterval = 15000L // 15 sec
+    private val heartbeatInterval = 15000L
 
     override fun onCreate() {
         super.onCreate()
