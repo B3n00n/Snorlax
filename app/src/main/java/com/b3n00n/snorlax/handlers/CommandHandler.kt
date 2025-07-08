@@ -31,6 +31,8 @@ class CommandHandler(
         registerHandler(ShellCommandHandler())
         registerHandler(PingHandler(context))
         registerHandler(DownloadAndInstallApkHandler(context))
+        registerHandler(ShutdownHandler(context))
+        registerHandler(UninstallAppHandler(context))
     }
 
     private fun registerHandler(handler: MessageHandler) {
