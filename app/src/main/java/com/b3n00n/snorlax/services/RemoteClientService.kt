@@ -23,7 +23,7 @@ import java.io.IOException
 class RemoteClientService : Service(), ConnectionManager.ConnectionListener {
     companion object {
         private const val TAG = "RemoteClientService"
-        private const val SERVER_IP = "192.168.50.124"
+        private const val SERVER_IP = "192.168.0.77"
         private const val SERVER_PORT = 8888
         private const val NOTIFICATION_ID = 1
         private const val CHANNEL_ID = "snorlax_service_channel"
