@@ -12,6 +12,7 @@ import android.util.Log
 import android.os.Handler
 import android.os.Looper
 import androidx.core.app.NotificationCompat
+import com.b3n00n.snorlax.config.ConfigurationManager
 import com.b3n00n.snorlax.handlers.CommandHandler
 import com.b3n00n.snorlax.models.DeviceInfo
 import com.b3n00n.snorlax.network.ConnectionManager
@@ -23,8 +24,6 @@ import java.io.IOException
 class RemoteClientService : Service(), ConnectionManager.ConnectionListener {
     companion object {
         private const val TAG = "RemoteClientService"
-        private const val SERVER_IP = "192.168.0.77"
-        private const val SERVER_PORT = 8888
         private const val NOTIFICATION_ID = 1
         private const val CHANNEL_ID = "snorlax_service_channel"
     }
@@ -32,6 +31,7 @@ class RemoteClientService : Service(), ConnectionManager.ConnectionListener {
     private var networkClient: NetworkClient? = null
     private var commandHandler: CommandHandler? = null
     private var isServiceRunning = false
+    private lateinit var configManager: ConfigurationManager
 
     private var heartbeatHandler: Handler? = null
     private var heartbeatRunnable: Runnable? = null
@@ -44,7 +44,14 @@ class RemoteClientService : Service(), ConnectionManager.ConnectionListener {
         createNotificationChannel()
         startForeground(NOTIFICATION_ID, createForegroundNotification())
 
-        networkClient = NetworkClient(SERVER_IP, SERVER_PORT)
+        configManager = ConfigurationManager(this)
+
+        val serverIp = configManager.getServerIp()
+        val serverPort = configManager.getServerPort()
+
+        Log.d(TAG, "Using server configuration: $serverIp:$serverPort")
+
+        networkClient = NetworkClient(serverIp, serverPort)
         networkClient!!.setConnectionListener(this)
 
         commandHandler = CommandHandler(this, networkClient!!)
@@ -62,25 +69,29 @@ class RemoteClientService : Service(), ConnectionManager.ConnectionListener {
     }
 
     private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                "Snorlax Remote Service",
-                NotificationManager.IMPORTANCE_LOW
-            ).apply {
-                description = "Keeps connection to remote server active"
-                setShowBadge(false)
-            }
-
-            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.createNotificationChannel(channel)
+        val channel = NotificationChannel(
+            CHANNEL_ID,
+            "Snorlax Remote Service",
+            NotificationManager.IMPORTANCE_LOW
+        ).apply {
+            description = "Keeps connection to remote server active"
+            setShowBadge(false)
         }
+
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.createNotificationChannel(channel)
     }
 
     private fun createForegroundNotification(): Notification {
+        val serverInfo = if (::configManager.isInitialized) {
+            "${configManager.getServerIp()}:${configManager.getServerPort()}"
+        } else {
+            "Initializing..."
+        }
+
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Snorlax Remote Active")
-            .setContentText("Connected to remote server")
+            .setContentText("Server: $serverInfo")
             .setSmallIcon(android.R.drawable.ic_menu_mylocation)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)
@@ -115,6 +126,7 @@ class RemoteClientService : Service(), ConnectionManager.ConnectionListener {
         heartbeatHandler = null
         heartbeatRunnable = null
     }
+
     private fun startNetworkConnection() {
         networkClient!!.connect()
     }
@@ -123,6 +135,10 @@ class RemoteClientService : Service(), ConnectionManager.ConnectionListener {
         Log.d(TAG, "Connected to server")
         sendDeviceInfo()
         startHeartbeat()
+
+        // Update notification to show connected status
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.notify(NOTIFICATION_ID, createForegroundNotification())
     }
 
     override fun onDisconnected() {
