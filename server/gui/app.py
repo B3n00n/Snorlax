@@ -31,6 +31,8 @@ class QuestControlGUI:
         if self.config.USE_DARK_THEME:
             apply_dark_theme()
         
+        dpg.set_viewport_small_icon("assets/icon.ico")
+
         self.server = QuestControlServer(
             host=self.config.DEFAULT_HOST,
             port=self.config.DEFAULT_PORT
