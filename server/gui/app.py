@@ -23,7 +23,7 @@ class QuestControlGUI:
         dpg.create_context()
         
         dpg.create_viewport(
-            title="Quest Control Center",
+            title="Combatica Quest Control Center",
             width=self.config.WINDOW_WIDTH,
             height=self.config.WINDOW_HEIGHT
         )

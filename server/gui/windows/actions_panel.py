@@ -19,10 +19,9 @@ class ActionsPanel:
     
     def _setup_ui(self):
         with dpg.group(parent=self.parent_tag):
-            dpg.add_text("Device Actions")
-            dpg.add_separator()
             
             # Quick actions
+            dpg.add_text("Quick Actions")
             with dpg.group(horizontal=True):
                 dpg.add_button(
                     label="Refresh Battery",
@@ -30,7 +29,7 @@ class ActionsPanel:
                     width=120
                 )
                 dpg.add_button(
-                    label="Ping Device",
+                    label="Ping Devices",
                     callback=self._ping_device,
                     width=120
                 )
@@ -76,12 +75,7 @@ class ActionsPanel:
                     width=120
                 )
                 dpg.add_button(
-                    label="Shutdown",
-                    callback=lambda: self._power_action("shutdown"),
-                    width=120
-                )
-                dpg.add_button(
-                    label="Restart",
+                    label="Restart Devices",
                     callback=lambda: self._power_action("restart"),
                     width=120
                 )
@@ -166,15 +160,19 @@ class ActionsPanel:
                     self._log_message(f"Launching {package_name} on {device.get_display_name()}", "info")
             dpg.delete_item(dialog_tag)
         
+        device_names = ", ".join([d.get_display_name() for d in devices])
+        
         with dpg.window(
             label="Launch App",
             modal=True,
             show=True,
             tag=dialog_tag,
             width=400,
-            height=150,
-            pos=[dpg.get_viewport_width() // 2 - 200, dpg.get_viewport_height() // 2 - 75]
+            height=200,
+            pos=[dpg.get_viewport_width() // 2 - 200, dpg.get_viewport_height() // 2 - 100]
         ):
+            dpg.add_text(f"Launch app on: {device_names}", wrap=380)
+            dpg.add_separator()
             dpg.add_text("Enter package name:")
             dpg.add_input_text(
                 tag=input_tag,
@@ -217,11 +215,15 @@ class ActionsPanel:
                         self._log_message(f"Uninstalling {package_name} from {device.get_display_name()}", "warning")
             
             dpg.delete_item(dialog_tag)
+            
+            device_names = ", ".join([d.get_display_name() for d in devices])
             show_confirm_dialog(
                 "Confirm Uninstall",
-                f"Are you sure you want to uninstall {package_name}?",
+                f"Are you sure you want to uninstall {package_name} from:\n{device_names}?",
                 confirm_callback
             )
+        
+        device_names = ", ".join([d.get_display_name() for d in devices])
         
         with dpg.window(
             label="Uninstall App",
@@ -229,9 +231,11 @@ class ActionsPanel:
             show=True,
             tag=dialog_tag,
             width=400,
-            height=150,
-            pos=[dpg.get_viewport_width() // 2 - 200, dpg.get_viewport_height() // 2 - 75]
+            height=200,
+            pos=[dpg.get_viewport_width() // 2 - 200, dpg.get_viewport_height() // 2 - 100]
         ):
+            dpg.add_text(f"Uninstall from: {device_names}", wrap=380)
+            dpg.add_separator()
             dpg.add_text("Enter package name to uninstall:")
             dpg.add_input_text(
                 tag=input_tag,
@@ -266,15 +270,19 @@ class ActionsPanel:
                 self._log_message("Invalid APK URL", "error")
             dpg.delete_item(dialog_tag)
         
+        device_names = ", ".join([d.get_display_name() for d in devices])
+        
         with dpg.window(
             label="Install APK",
             modal=True,
             show=True,
             tag=dialog_tag,
             width=500,
-            height=150,
-            pos=[dpg.get_viewport_width() // 2 - 250, dpg.get_viewport_height() // 2 - 75]
+            height=200,
+            pos=[dpg.get_viewport_width() // 2 - 250, dpg.get_viewport_height() // 2 - 100]
         ):
+            dpg.add_text(f"Install on: {device_names}", wrap=480)
+            dpg.add_separator()
             dpg.add_text("Enter APK URL:")
             dpg.add_input_text(
                 tag=input_tag,
@@ -307,15 +315,19 @@ class ActionsPanel:
                     self._log_message(f"Executing on {device.get_display_name()}: {command}", "info")
             dpg.delete_item(dialog_tag)
         
+        device_names = ", ".join([d.get_display_name() for d in devices])
+        
         with dpg.window(
             label="Execute Shell Command",
             modal=True,
             show=True,
             tag=dialog_tag,
             width=500,
-            height=150,
-            pos=[dpg.get_viewport_width() // 2 - 250, dpg.get_viewport_height() // 2 - 75]
+            height=200,
+            pos=[dpg.get_viewport_width() // 2 - 250, dpg.get_viewport_height() // 2 - 100]
         ):
+            dpg.add_text(f"Execute on: {device_names}", wrap=480)
+            dpg.add_separator()
             dpg.add_text("Enter shell command:")
             dpg.add_input_text(
                 tag=input_tag,
@@ -351,9 +363,9 @@ class ActionsPanel:
                     device.send_shutdown_command(action)
                     self._log_message(f"Sending {action} command to {device.get_display_name()}", "warning")
         
-        device_names = ", ".join([d.get_display_name() for d in devices])
+        device_names = "\n".join([f"  • {d.get_display_name()}" for d in devices])
         show_confirm_dialog(
             f"Confirm {action.capitalize()}",
-            f"Are you sure you want to {action} these devices?\n{device_names}",
+            f"Are you sure you want to {action} these devices?\n\n{device_names}",
             confirm_callback
         )

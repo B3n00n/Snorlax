@@ -20,6 +20,7 @@ class DeviceDetailsPanel:
             dpg.add_separator()
             
             with dpg.group():
+                self.detail_tags['name'] = dpg.add_text("Device: N/A")
                 self.detail_tags['model'] = dpg.add_text("Model: N/A")
                 self.detail_tags['serial'] = dpg.add_text("Serial: N/A")
                 self.detail_tags['ip'] = dpg.add_text("IP Address: N/A")
@@ -57,6 +58,7 @@ class DeviceDetailsPanel:
         event_bus.subscribe(EventType.DEVICE_UPDATED, self._on_device_updated)
         event_bus.subscribe(EventType.BATTERY_UPDATED, self._on_battery_updated)
         event_bus.subscribe(EventType.COMMAND_EXECUTED, self._on_command_executed)
+        event_bus.subscribe(EventType.DEVICE_NAME_CHANGED, self._on_device_name_changed)
     
     def _on_device_updated(self, device: QuestDevice):
         if device and (not self.current_device or device.get_id() == self.current_device.get_id()):
@@ -72,9 +74,21 @@ class DeviceDetailsPanel:
         if device and self.current_device and device.get_id() == self.current_device.get_id():
             self._add_command_to_history(data.get('success'), data.get('message'))
     
+    def _on_device_name_changed(self, data: dict):
+        """Handle device name change event"""
+        device_id = data.get('device_id')
+        if device_id and self.current_device and device_id == self.current_device.get_id():
+            # Invalidate the cached name
+            self.current_device.invalidate_name_cache()
+            # Update the display name
+            dpg.set_value(self.detail_tags['name'], f"Device: {self.current_device.get_display_name()}")
+    
     def _update_display(self):
         if not self.current_device:
             return
+        
+        # Update device name
+        dpg.set_value(self.detail_tags['name'], f"Device: {self.current_device.get_display_name()}")
         
         if self.current_device.device_info:
             info = self.current_device.device_info
@@ -94,22 +108,30 @@ class DeviceDetailsPanel:
             return
         
         battery = self.current_device.battery_info
-        dpg.set_value(self.detail_tags['battery_level'], f"Level: {battery.headset_level}%")
-        dpg.set_value(self.detail_tags['battery_charging'], 
-                     f"Charging: {'Yes' if battery.is_charging else 'No'}")
-        dpg.set_value(self.detail_tags['battery_updated'], 
-                     f"Updated: {battery.last_updated.strftime('%H:%M:%S')}")
         
-        dpg.set_value(self.detail_tags['battery_progress'], battery.headset_level / 100.0)
+        # Update battery fields with safety checks
+        battery_updates = [
+            ('battery_level', f"Level: {battery.headset_level}%"),
+            ('battery_charging', f"Charging: {'Yes' if battery.is_charging else 'No'}"),
+            ('battery_updated', f"Updated: {battery.last_updated.strftime('%H:%M:%S')}")
+        ]
         
-        if battery.headset_level < 20:
-            color = (250, 100, 100, 255)  # Red
-        elif battery.headset_level < 50:
-            color = (250, 200, 100, 255)  # Yellow
-        else:
-            color = (100, 250, 100, 255)  # Green
+        for key, value in battery_updates:
+            if key in self.detail_tags and dpg.does_item_exist(self.detail_tags[key]):
+                dpg.set_value(self.detail_tags[key], value)
         
-        dpg.configure_item(self.detail_tags['battery_progress'], overlay=f"{battery.headset_level}%")
+        # Update progress bar
+        if 'battery_progress' in self.detail_tags and dpg.does_item_exist(self.detail_tags['battery_progress']):
+            dpg.set_value(self.detail_tags['battery_progress'], battery.headset_level / 100.0)
+            
+            if battery.headset_level < 20:
+                color = (250, 100, 100, 255)  # Red
+            elif battery.headset_level < 50:
+                color = (250, 200, 100, 255)  # Yellow
+            else:
+                color = (100, 250, 100, 255)  # Green
+            
+            dpg.configure_item(self.detail_tags['battery_progress'], overlay=f"{battery.headset_level}%")
     
     def _update_command_history(self):
         if not self.current_device:
@@ -122,7 +144,7 @@ class DeviceDetailsPanel:
     
     def _add_command_to_history(self, success: bool, message: str, prepend: bool = True):
         color = (100, 250, 100) if success else (250, 100, 100)
-        status = "✓" if success else "✗"
+        status = "✔" if success else "✗"
         
         with dpg.group(parent=self.detail_tags['command_history'], horizontal=True):
             dpg.add_text(status, color=color)

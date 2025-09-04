@@ -17,6 +17,8 @@ class QuestDevice:
         self.command_history: list[CommandResult] = []
         self.is_connected = True
         self.lock = threading.Lock()
+        self._cached_display_name: Optional[str] = None
+        self._cached_name_serial: Optional[str] = None
     
     def send_message(self, message_type: MessageType, data: bytes = b'') -> bool:
         try:
@@ -48,18 +50,27 @@ class QuestDevice:
     
     def get_display_name(self) -> str:
         if self.device_info:
-            try:
-                from utils.device_names import device_name_manager
-                custom_name = device_name_manager.get_name(self.device_info.serial)
-                if custom_name:
-                    return custom_name
-            except Exception as e:
-                print(f"Error getting custom name: {e}")
-            return f"{self.device_info.model} ({self.device_info.serial})"
+            # Check if we need to update the cached name
+            if (self._cached_display_name is None or 
+                self._cached_name_serial != self.device_info.serial):
+                try:
+                    from utils.device_names import device_name_manager
+                    custom_name = device_name_manager.get_name(self.device_info.serial)
+                    if custom_name:
+                        self._cached_display_name = custom_name
+                    else:
+                        self._cached_display_name = f"{self.device_info.model} ({self.device_info.serial})"
+                    self._cached_name_serial = self.device_info.serial
+                except Exception as e:
+                    print(f"Error getting custom name: {e}")
+                    self._cached_display_name = f"{self.device_info.model} ({self.device_info.serial})"
+            return self._cached_display_name
         return f"{self.address[0]}:{self.address[1]}"
     
     def invalidate_name_cache(self):
-        self._cached_name = None
+        """Force the display name to be recalculated on next access"""
+        self._cached_display_name = None
+        self._cached_name_serial = None
     
     def get_id(self) -> str:
         return self.device_info.serial if self.device_info else f"{self.address[0]}:{self.address[1]}"

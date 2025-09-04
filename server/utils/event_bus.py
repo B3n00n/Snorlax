@@ -2,7 +2,6 @@ from typing import Dict, List, Callable, Any
 from enum import Enum, auto
 import threading
 
-
 class EventType(Enum):
     DEVICE_CONNECTED = auto()
     DEVICE_DISCONNECTED = auto()

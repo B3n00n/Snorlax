@@ -21,7 +21,7 @@ class MainWindow:
     
     def _setup_ui(self):
         # Create main window
-        with dpg.window(tag="main_window", label="Quest Control Center", no_close=True):
+        with dpg.window(tag="main_window", label="Combatica Quest Control Center", no_close=True):
             # Menu bar
             with dpg.menu_bar():
                 with dpg.menu(label="File"):
@@ -66,14 +66,16 @@ class MainWindow:
         event_bus.subscribe(EventType.ERROR_OCCURRED, self._on_error)
     
     def _on_server_started(self, data: dict):
-        host = data.get('host', 'unknown')
-        port = data.get('port', 'unknown')
-        dpg.set_value(self.status_tag, f"Server: Running on {host}:{port}")
-        dpg.configure_item(self.status_tag, color=(100, 250, 100))
+        if self.status_tag and dpg.does_item_exist(self.status_tag):
+            host = data.get('host', 'unknown')
+            port = data.get('port', 'unknown')
+            dpg.set_value(self.status_tag, f"Server: Running on {host}:{port}")
+            dpg.configure_item(self.status_tag, color=(100, 250, 100))
     
     def _on_server_stopped(self, data=None):
-        dpg.set_value(self.status_tag, "Server: Stopped")
-        dpg.configure_item(self.status_tag, color=(250, 100, 100))
+        if self.status_tag and dpg.does_item_exist(self.status_tag):
+            dpg.set_value(self.status_tag, "Server: Stopped")
+            dpg.configure_item(self.status_tag, color=(250, 100, 100))
     
     def _on_error(self, error_message: str):
         if self.actions_panel:
@@ -145,10 +147,12 @@ class MainWindow:
                 )
     
     def _clear_all_logs(self):
-        if self.actions_panel and self.actions_panel.log_tag:
+        if self.actions_panel and self.actions_panel.log_tag and dpg.does_item_exist(self.actions_panel.log_tag):
             dpg.delete_item(self.actions_panel.log_tag, children_only=True)
         
-        if self.device_details_panel and self.device_details_panel.detail_tags.get('command_history'):
+        if (self.device_details_panel and 
+            self.device_details_panel.detail_tags.get('command_history') and 
+            dpg.does_item_exist(self.device_details_panel.detail_tags['command_history'])):
             dpg.delete_item(self.device_details_panel.detail_tags['command_history'], children_only=True)
         
         for device in self.server.get_connected_devices():

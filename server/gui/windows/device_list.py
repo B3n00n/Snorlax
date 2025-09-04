@@ -1,6 +1,6 @@
 import dearpygui.dearpygui as dpg
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Dict, Optional, Set
 
 from core.device import QuestDevice
 from core.server import QuestControlServer
@@ -12,10 +12,11 @@ class DeviceListPanel:
     def __init__(self, server: QuestControlServer, parent_tag: str):
         self.server = server
         self.parent_tag = parent_tag
-        self.selected_device_id: Optional[str] = None
+        self.selected_device_ids: Set[str] = set()  # Changed to set for multiple selection
         self.device_rows: Dict[str, str] = {}
         self.table_tag = None
         self.colors = get_status_colors()
+        self.checkbox_tags: Dict[str, str] = {}  # device_id -> checkbox_tag
         
         self._setup_ui()
         self._subscribe_events()
@@ -24,6 +25,22 @@ class DeviceListPanel:
         with dpg.group(parent=self.parent_tag):
             dpg.add_text("Connected Devices", tag="device_list_title")
             dpg.add_separator()
+            
+            # Select/Deselect all buttons
+            with dpg.group(horizontal=True):
+                dpg.add_button(
+                    label="Select All",
+                    callback=self._select_all,
+                    width=100
+                )
+                dpg.add_button(
+                    label="Deselect All",
+                    callback=self._deselect_all,
+                    width=100
+                )
+                dpg.add_text("", tag="selected_count_text")
+            
+            dpg.add_spacer(height=5)
             
             self.table_tag = dpg.generate_uuid()
             with dpg.table(
@@ -42,9 +59,12 @@ class DeviceListPanel:
                 sortable=True,
                 context_menu_in_body=True
             ):
+                dpg.add_table_column(label="Select", width_fixed=True, init_width_or_weight=50)
                 dpg.add_table_column(label="Device", width_stretch=True, init_width_or_weight=0.0)
                 dpg.add_table_column(label="IP", width_fixed=True, init_width_or_weight=120)
                 dpg.add_table_column(label="Battery", width_fixed=True, init_width_or_weight=80)
+            
+            self._update_selected_count()
     
     def _subscribe_events(self):
         event_bus.subscribe(EventType.DEVICE_CONNECTED, self._on_device_connected)
@@ -61,6 +81,10 @@ class DeviceListPanel:
         if device_id in self.device_rows:
             dpg.delete_item(self.device_rows[device_id])
             del self.device_rows[device_id]
+            self.selected_device_ids.discard(device_id)
+            if device_id in self.checkbox_tags:
+                del self.checkbox_tags[device_id]
+            self._update_selected_count()
     
     def _on_device_updated(self, device: QuestDevice):
         self._update_device_row(device)
@@ -68,26 +92,22 @@ class DeviceListPanel:
     def _on_battery_updated(self, device: QuestDevice):
         self._update_device_row(device)
     
-    def _on_device_name_changed(self, device: QuestDevice):
-        print(f"Device name change event received for {device.get_id()}")
-        device_id = device.get_id()
-        if device_id in self.device_rows:
-            print(f"Recreating row for {device_id} with new name: {device.get_display_name()}")
-            row_tag = self.device_rows[device_id]
-            dpg.delete_item(row_tag)
-            del self.device_rows[device_id]
-            self._add_device_row(device)
-            
-            if self.selected_device_id == device_id:
-                self._on_device_selected(device_id)
-        else:
-            print(f"Device {device_id} not found in device_rows")
+    def _on_device_name_changed(self, data: dict):
+        """Handle device name change event with proper data structure"""
+        device_id = data.get('device_id')
+        if device_id and device_id in self.device_rows:
+            device = self.server.get_device_by_id(device_id)
+            if device:
+                device.invalidate_name_cache()
+                self._update_device_row(device)
     
     def _on_server_stopped(self, data=None):
         for row_tag in list(self.device_rows.values()):
             dpg.delete_item(row_tag)
         self.device_rows.clear()
-        self.selected_device_id = None
+        self.selected_device_ids.clear()
+        self.checkbox_tags.clear()
+        self._update_selected_count()
     
     def _add_device_row(self, device: QuestDevice):
         device_id = device.get_id()
@@ -98,21 +118,29 @@ class DeviceListPanel:
         self.device_rows[device_id] = row_tag
         
         with dpg.table_row(parent=self.table_tag, tag=row_tag):
-            # Cell 1: Device name (clickable)
+            # Cell 1: Checkbox for selection
+            checkbox_tag = dpg.add_checkbox(
+                default_value=device_id in self.selected_device_ids,
+                callback=lambda s, v: self._on_device_checkbox_changed(device_id, v)
+            )
+            self.checkbox_tags[device_id] = checkbox_tag
+            
+            # Cell 2: Device name (clickable)
             device_tag = dpg.add_selectable(
                 label=device.get_display_name(),
-                callback=lambda: self._on_device_selected(device_id),
+                callback=lambda: self._on_device_clicked(device_id),
                 span_columns=True
             )
             
-            # Cell 2: IP address
+            # Cell 3: IP address
             ip_tag = dpg.add_text(device.device_info.ip if device.device_info else "Unknown")
             
-            # Cell 3: Battery status
+            # Cell 4: Battery status
             battery_tag = dpg.add_text(self._get_battery_text(device))
             
             # Store tags for updates
             dpg.set_item_user_data(row_tag, {
+                'checkbox': checkbox_tag,
                 'device': device_tag,
                 'ip': ip_tag,
                 'battery': battery_tag
@@ -128,11 +156,16 @@ class DeviceListPanel:
         tags = dpg.get_item_user_data(row_tag)
         
         if tags:
+            # Update device name by configuring the selectable's label
+            if 'device' in tags:
+                dpg.configure_item(tags['device'], label=device.get_display_name())
+            
             # Update battery
-            dpg.set_value(tags['battery'], self._get_battery_text(device))
+            if 'battery' in tags:
+                dpg.set_value(tags['battery'], self._get_battery_text(device))
             
             # Update battery color based on level
-            if device.battery_info:
+            if device.battery_info and 'battery' in tags:
                 level = device.battery_info.headset_level
                 if level < 20:
                     color = self.colors['battery_critical']
@@ -149,20 +182,54 @@ class DeviceListPanel:
         charging = "⚡" if device.battery_info.is_charging else ""
         return f"{device.battery_info.headset_level}%{charging}"
     
-    def _on_device_selected(self, device_id: str):
-        self.selected_device_id = device_id
+    def _on_device_checkbox_changed(self, device_id: str, checked: bool):
+        if checked:
+            self.selected_device_ids.add(device_id)
+        else:
+            self.selected_device_ids.discard(device_id)
+        self._update_selected_count()
+    
+    def _on_device_clicked(self, device_id: str):
+        """Handle device click - show details in the details panel"""
         device = self.server.get_device_by_id(device_id)
         if device:
             # Update device details panel
             event_bus.emit(EventType.DEVICE_UPDATED, device)
     
+    def _select_all(self):
+        """Select all devices"""
+        for device_id, checkbox_tag in self.checkbox_tags.items():
+            dpg.set_value(checkbox_tag, True)
+            self.selected_device_ids.add(device_id)
+        self._update_selected_count()
+    
+    def _deselect_all(self):
+        """Deselect all devices"""
+        for checkbox_tag in self.checkbox_tags.values():
+            dpg.set_value(checkbox_tag, False)
+        self.selected_device_ids.clear()
+        self._update_selected_count()
+    
+    def _update_selected_count(self):
+        """Update the selected devices count display"""
+        count = len(self.selected_device_ids)
+        total = len(self.device_rows)
+        text = f"Selected: {count}/{total}" if total > 0 else ""
+        if dpg.does_item_exist("selected_count_text"):
+            dpg.set_value("selected_count_text", text)
+    
     def get_selected_device(self) -> Optional[QuestDevice]:
-        if self.selected_device_id:
-            return self.server.get_device_by_id(self.selected_device_id)
+        """Get the first selected device (for backwards compatibility)"""
+        if self.selected_device_ids:
+            device_id = next(iter(self.selected_device_ids))
+            return self.server.get_device_by_id(device_id)
         return None
     
     def get_selected_devices(self) -> list[QuestDevice]:
-        if self.selected_device_id:
-            device = self.server.get_device_by_id(self.selected_device_id)
-            return [device] if device else []
-        return []
+        """Get all selected devices"""
+        devices = []
+        for device_id in self.selected_device_ids:
+            device = self.server.get_device_by_id(device_id)
+            if device:
+                devices.append(device)
+        return devices
