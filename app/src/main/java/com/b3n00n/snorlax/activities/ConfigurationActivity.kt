@@ -26,13 +26,14 @@ class ConfigurationActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Fix for VR focus issues
-        window.addFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)
-        window.clearFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)
+        window.addFlags(
+            WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
+                    WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
+                    WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
+        )
 
         configManager = ConfigurationManager(this)
 
-        // Handle back press using the modern approach
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 finishActivity()
@@ -41,7 +42,6 @@ class ConfigurationActivity : ComponentActivity() {
 
         setContentView(createMainLayout())
 
-        // Set window background to pure black
         window.decorView.setBackgroundColor(Color.BLACK)
     }
 
@@ -212,7 +212,6 @@ class ConfigurationActivity : ComponentActivity() {
     }
 
     private fun finishActivity() {
-        // Properly finish the activity to avoid focus issues
-        finishAndRemoveTask()
+        finish()
     }
 }
