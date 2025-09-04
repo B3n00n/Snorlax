@@ -1,5 +1,6 @@
 import customtkinter as ctk
 import threading
+import os
 from typing import Optional
 
 from config import WINDOW_TITLE, ADB_PATH
@@ -31,13 +32,9 @@ class MainWindow:
         self.setup_logger()
         self.refresh_status()
         
-        try:
-            import os
-            icon_path = os.path.join(os.path.dirname(__file__), '..', '..', 'resources', 'icon.ico')
-            if os.path.exists(icon_path):
-                self.root.iconbitmap(icon_path)
-        except:
-            pass
+        icon_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'assets', 'icon.ico'))
+        if os.path.exists(icon_path):
+            self.root.iconbitmap(icon_path)
         
     def create_widgets(self):
         row = 0
