@@ -169,7 +169,7 @@ class DeviceListPanel:
         if not device.battery_info:
             return "N/A"
         
-        charging = "⚡" if device.battery_info.is_charging else ""
+        charging = " [C]" if device.battery_info.is_charging else ""
         return f"{device.battery_info.headset_level}%{charging}"
     
     def _on_device_checkbox_changed(self, device_id: str, checked: bool):

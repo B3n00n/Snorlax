@@ -20,7 +20,6 @@ class ActionsPanel:
     def _setup_ui(self):
         with dpg.group(parent=self.parent_tag):
             
-            # Quick actions
             dpg.add_text("Quick Actions")
             with dpg.group(horizontal=True):
                 dpg.add_button(
@@ -363,7 +362,7 @@ class ActionsPanel:
                     device.send_shutdown_command(action)
                     self._log_message(f"Sending {action} command to {device.get_display_name()}", "warning")
         
-        device_names = "\n".join([f"  • {d.get_display_name()}" for d in devices])
+        device_names = "\n".join([f"  - {d.get_display_name()}" for d in devices])
         show_confirm_dialog(
             f"Confirm {action.capitalize()}",
             f"Are you sure you want to {action} these devices?\n\n{device_names}",

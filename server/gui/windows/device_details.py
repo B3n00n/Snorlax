@@ -138,7 +138,7 @@ class DeviceDetailsPanel:
     
     def _add_command_to_history(self, success: bool, message: str, prepend: bool = True):
         color = (100, 250, 100) if success else (250, 100, 100)
-        status = "✔" if success else "✗"
+        status = "[OK]" if success else "[FAIL]"
         
         with dpg.group(parent=self.detail_tags['command_history'], horizontal=True):
             dpg.add_text(status, color=color)
