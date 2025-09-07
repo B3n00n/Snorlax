@@ -81,7 +81,6 @@ class APKManagerDialog:
             with dpg.group(horizontal=True, parent=self.file_list_tag):
                 dpg.add_text(apk_file, color=(200, 200, 200))
                 
-                # Get file size
                 try:
                     file_path = os.path.join(apk_dir, apk_file)
                     size_mb = os.path.getsize(file_path) / (1024 * 1024)
@@ -96,20 +95,28 @@ class APKManagerDialog:
                 )
     
     def _show_file_selector(self):
-        dpg.add_file_dialog(
+        file_dialog_tag = dpg.generate_uuid()
+        
+        with dpg.file_dialog(
             directory_selector=False,
             show=True,
             callback=self._on_file_selected,
-            file_filter="APK Files (*.apk){.apk}",
+            tag=file_dialog_tag,
             width=700,
-            height=400
-        )
+            height=400,
+            modal=True
+        ):
+            dpg.add_file_extension(".*", color=(255, 255, 255, 255))
+            dpg.add_file_extension(".apk", color=(0, 255, 0, 255), custom_text="[APK]")
     
     def _on_file_selected(self, sender, app_data):
         selections = app_data["selections"]
         if selections:
             for file_name, file_path in selections.items():
-                self._copy_apk_to_server(file_path)
+                if file_path.lower().endswith('.apk'):
+                    self._copy_apk_to_server(file_path)
+                else:
+                    logger.warning(f"Skipped non-APK file: {file_name}")
         
         dpg.delete_item(sender)
         self._refresh_list()
@@ -126,10 +133,21 @@ class APKManagerDialog:
     
     def _remove_file(self, filename: str):
         try:
-            file_path = os.path.join(self.server.apk_server.apk_directory, filename)
-            os.remove(file_path)
-            logger.info(f"Removed APK: {filename}")
-            self._refresh_list()
+            apk_dir = self.server.apk_server.apk_directory
+            if not apk_dir:
+                logger.error("APK directory is not set")
+                return
+                
+            file_path = os.path.join(apk_dir, filename)
+            
+            if os.path.exists(file_path):
+                os.remove(file_path)
+                logger.info(f"Removed APK: {filename}")
+                self._refresh_list()
+            else:
+                logger.error(f"File not found: {filename}")
+                self._refresh_list()
+                
         except Exception as e:
             logger.error(f"Error removing APK: {e}")
     
@@ -142,9 +160,12 @@ class APKManagerDialog:
         
         apk_dir = os.path.abspath(self.server.apk_server.apk_directory)
         
-        if platform.system() == "Windows":
-            os.startfile(apk_dir)
-        elif platform.system() == "Darwin":
-            subprocess.Popen(["open", apk_dir])
-        else:  # Linux
-            subprocess.Popen(["xdg-open", apk_dir])
+        try:
+            if platform.system() == "Windows":
+                os.startfile(apk_dir)
+            elif platform.system() == "Darwin":
+                subprocess.Popen(["open", apk_dir])
+            else:  # Linux
+                subprocess.Popen(["xdg-open", apk_dir])
+        except Exception as e:
+            logger.error(f"Error opening APK folder: {e}")
