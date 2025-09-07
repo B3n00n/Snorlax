@@ -1,7 +1,6 @@
 package com.b3n00n.snorlax.utils
 
 import android.app.admin.DevicePolicyManager
-import android.content.ComponentName
 import android.content.Context
 import android.content.pm.PackageInstaller
 import android.os.Build
@@ -30,7 +29,7 @@ object QuestApkInstaller {
         val isDeviceOwner = devicePolicyManager.isDeviceOwnerApp(context.packageName)
 
         if (!isDeviceOwner) {
-            return InstallResult.Error("App is not device owner. Cannot install silently.")
+            return InstallResult.Error("App is not device owner. Cannot install.")
         }
 
         return try {
@@ -83,7 +82,7 @@ object QuestApkInstaller {
         session.close()
 
         Log.d(TAG, "Installation session committed for silent install")
-        return InstallResult.Success("✅ APK installation started silently")
+        return InstallResult.Success("APK installation started")
     }
 
     sealed class InstallResult {

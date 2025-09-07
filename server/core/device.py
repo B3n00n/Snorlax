@@ -36,6 +36,7 @@ class QuestDevice:
         writer = PacketWriter()
         if command:
             writer.write_string(command)
+            
         return self.send_message(message_type, writer.to_bytes())
     
     def send_shutdown_command(self, action: str) -> bool:
@@ -50,7 +51,6 @@ class QuestDevice:
     
     def get_display_name(self) -> str:
         if self.device_info:
-            # Check if we need to update the cached name
             if (self._cached_display_name is None or 
                 self._cached_name_serial != self.device_info.serial):
                 try:

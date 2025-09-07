@@ -24,7 +24,7 @@ class PingHandler(private val context: Context) : MessageHandler {
             playPingSound()
 
             val deviceInfo = DeviceInfo(context)
-            val responseMessage = "🏓 Pong from ${deviceInfo.model} (${deviceInfo.serial}) - Beep played!"
+            val responseMessage = "${deviceInfo.model} (${deviceInfo.serial}) - Beep played!"
 
             commandHandler.sendResponse(true, responseMessage)
         } catch (e: Exception) {
