@@ -1,9 +1,9 @@
 import dearpygui.dearpygui as dpg
 from typing import Optional
+import os
 
 from core.server import QuestControlServer
 from core.models import MessageType
-from gui.dialogs.confirm_dialog import show_confirm_dialog
 from gui.windows.device_list import DeviceListPanel
 from config.settings import Config
 
@@ -60,6 +60,11 @@ class ActionsPanel:
                 dpg.add_button(
                     label="Install APK",
                     callback=self._show_install_apk_dialog,
+                    width=120
+                )
+                dpg.add_button(
+                    label="Install Local APK",
+                    callback=self._show_install_local_apk_dialog,
                     width=120
                 )
             
@@ -152,7 +157,7 @@ class ActionsPanel:
         input_tag = dpg.generate_uuid()
         
         def launch_app():
-            package_name = dpg.get_value(input_tag)
+            package_name = dpg.get_value(input_tag).strip()
             if package_name:
                 for device in devices:
                     device.send_command(MessageType.LAUNCH_APP, package_name)
@@ -197,9 +202,10 @@ class ActionsPanel:
         input_tag = dpg.generate_uuid()
         
         def uninstall_app():
-            package_name = dpg.get_value(input_tag)
+            package_name = dpg.get_value(input_tag).strip()
             
             if not package_name:
+                self._log_message("Package name cannot be empty", "error")
                 return
             
             if package_name in Config.PROTECTED_PACKAGES:
@@ -207,20 +213,18 @@ class ActionsPanel:
                 dpg.delete_item(dialog_tag)
                 return
             
-            def confirm_callback(confirmed):
-                if confirmed:
-                    for device in devices:
-                        device.send_uninstall_command(package_name)
-                        self._log_message(f"Uninstalling {package_name} from {device.get_display_name()}", "warning")
-            
+            # Close the dialog
             dpg.delete_item(dialog_tag)
             
-            device_names = ", ".join([d.get_display_name() for d in devices])
-            show_confirm_dialog(
-                "Confirm Uninstall",
-                f"Are you sure you want to uninstall {package_name} from:\n{device_names}?",
-                confirm_callback
-            )
+            # Uninstall directly
+            self._log_message(f"Uninstalling {package_name}...", "warning")
+            
+            for device in devices:
+                success = device.send_uninstall_command(package_name)
+                if success:
+                    self._log_message(f"Uninstall command sent to {device.get_display_name()}", "success")
+                else:
+                    self._log_message(f"Failed to send uninstall command to {device.get_display_name()}", "error")
         
         device_names = ", ".join([d.get_display_name() for d in devices])
         
@@ -260,7 +264,7 @@ class ActionsPanel:
         input_tag = dpg.generate_uuid()
         
         def install_apk():
-            apk_url = dpg.get_value(input_tag)
+            apk_url = dpg.get_value(input_tag).strip()
             if apk_url and apk_url.startswith(('http://', 'https://')):
                 for device in devices:
                     device.send_command(MessageType.DOWNLOAD_AND_INSTALL_APK, apk_url)
@@ -307,7 +311,7 @@ class ActionsPanel:
         input_tag = dpg.generate_uuid()
         
         def execute_command():
-            command = dpg.get_value(input_tag)
+            command = dpg.get_value(input_tag).strip()
             if command:
                 for device in devices:
                     device.send_command(MessageType.EXECUTE_SHELL, command)
@@ -343,11 +347,6 @@ class ActionsPanel:
                     width=75
                 )
     
-    def _clear_all_logs(self):
-        # Clear this log
-        dpg.delete_item(self.log_tag, children_only=True)
-        self._log_message("Logs cleared", "info")
-    
     def _power_action(self, action: str):
         if action != "restart":
             return
@@ -356,15 +355,72 @@ class ActionsPanel:
         if not devices:
             return
         
-        def confirm_callback(confirmed):
-            if confirmed:
-                for device in devices:
-                    device.send_shutdown_command(action)
-                    self._log_message(f"Sending {action} command to {device.get_display_name()}", "warning")
+        # Direct restart without confirmation
+        self._log_message(f"Sending {action} command to {len(devices)} devices", "warning")
         
-        device_names = "\n".join([f"  - {d.get_display_name()}" for d in devices])
-        show_confirm_dialog(
-            f"Confirm {action.capitalize()}",
-            f"Are you sure you want to {action} these devices?\n\n{device_names}",
-            confirm_callback
-        )
+        for device in devices:
+            device.send_shutdown_command(action)
+            self._log_message(f"Sent {action} command to {device.get_display_name()}", "warning")
+    
+    def _show_install_local_apk_dialog(self):
+        devices = self._get_target_devices("install local APK")
+        if not devices:
+            return
+    
+        apk_files = self.server.get_available_apks()
+    
+        if not apk_files:
+            self._log_message("No APK files found in server's 'apks' directory", "warning")
+            return
+    
+        dialog_tag = dpg.generate_uuid()
+        combo_tag = dpg.generate_uuid()
+    
+        def install_local_apk():
+            selected_apk = dpg.get_value(combo_tag)
+            if selected_apk and selected_apk != "Select an APK...":
+                apk_url = self.server.apk_server.get_apk_url(selected_apk)
+                
+                for device in devices:
+                    device.send_command(MessageType.DOWNLOAD_AND_INSTALL_APK, apk_url)
+                    self._log_message(
+                        f"Installing {selected_apk} on {device.get_display_name()}", 
+                        "info"
+                    )
+            dpg.delete_item(dialog_tag)
+    
+        device_names = ", ".join([d.get_display_name() for d in devices])
+    
+        with dpg.window(
+            label="Install Local APK",
+            modal=True,
+            show=True,
+            tag=dialog_tag,
+            width=500,
+            height=250,
+            pos=[dpg.get_viewport_width() // 2 - 250, dpg.get_viewport_height() // 2 - 125]
+        ):
+            dpg.add_text(f"Install on: {device_names}", wrap=480)
+            dpg.add_separator()
+            dpg.add_text("Select APK from server:")
+        
+            dpg.add_combo(
+                tag=combo_tag,
+                items=["Select an APK..."] + apk_files,
+                default_value="Select an APK...",
+                width=-1
+            )
+        
+            dpg.add_spacer(height=10)
+        
+            dpg.add_text("APK files location: ./apks/", color=(150, 150, 150))
+        
+            dpg.add_spacer(height=10)
+        
+            with dpg.group(horizontal=True):
+                dpg.add_button(label="Install", callback=install_local_apk, width=75)
+                dpg.add_button(
+                    label="Cancel",
+                    callback=lambda: dpg.delete_item(dialog_tag),
+                    width=75
+                )

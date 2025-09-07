@@ -7,6 +7,7 @@ from .device import QuestDevice
 from .models import MessageType, DeviceInfo, BatteryInfo
 from .packet import PacketReader
 from utils.event_bus import event_bus, EventType
+from .http_server import APKHttpServer
 
 
 class QuestControlServer:
@@ -18,11 +19,13 @@ class QuestControlServer:
         self.running = False
         self.lock = threading.Lock()
         self._server_thread = None
+        self.apk_server = APKHttpServer(host=host, port=port+1)
     
     def start(self):
         if not self.running:
             self._server_thread = threading.Thread(target=self._run_server, daemon=True)
             self._server_thread.start()
+            self.apk_server.start()
     
     def _run_server(self):
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -159,6 +162,9 @@ class QuestControlServer:
             results[device_id] = device.send_command(message_type, command)
         return results
     
+    def get_available_apks(self) -> List[str]:
+        return self.apk_server.list_apk_files()
+    
     def stop(self):
         self.running = False
         
@@ -180,3 +186,4 @@ class QuestControlServer:
     
     def cleanup(self):
         self.stop()
+        self.apk_server.stop()

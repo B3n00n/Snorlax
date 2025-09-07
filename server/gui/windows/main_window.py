@@ -37,6 +37,7 @@ class MainWindow:
                     dpg.add_menu_item(label="Clear All Logs", callback=self._clear_all_logs)
                     dpg.add_separator()
                     dpg.add_menu_item(label="Device Names Manager", callback=self._show_device_names_manager)
+                    dpg.add_menu_item(label="APK File Manager", callback=self._show_apk_manager)
             
             # Status bar
             self.status_tag = dpg.add_text("Server: Stopped", color=(200, 200, 200))
@@ -161,4 +162,9 @@ class MainWindow:
     def _show_device_names_manager(self):
         from gui.dialogs.device_names_dialog import DeviceNamesDialog
         dialog = DeviceNamesDialog(self.server)
+        dialog.show()
+        
+    def _show_apk_manager(self):
+        from gui.dialogs.apk_manager_dialog import APKManagerDialog
+        dialog = APKManagerDialog(self.server)
         dialog.show()
