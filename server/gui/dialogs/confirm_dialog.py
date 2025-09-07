@@ -1,5 +1,3 @@
-"""Confirmation dialog utilities"""
-
 import dearpygui.dearpygui as dpg
 from typing import Callable, Optional
 
@@ -10,7 +8,6 @@ class ConfirmDialog:
         self.dialog_tag = None
     
     def show(self, title: str, message: str, callback: Callable, parent=None):
-        """Show a confirmation dialog"""
         self.callback = callback
         self.dialog_tag = dpg.generate_uuid()
         
@@ -40,19 +37,16 @@ class ConfirmDialog:
                 )
     
     def _on_confirm(self):
-        """Handle confirmation"""
         if self.callback:
             self.callback(True)
         dpg.delete_item(self.dialog_tag)
     
     def _on_cancel(self):
-        """Handle cancellation"""
         if self.callback:
             self.callback(False)
         dpg.delete_item(self.dialog_tag)
 
 
 def show_confirm_dialog(title: str, message: str, callback: Callable):
-    """Helper function to show a confirmation dialog"""
     dialog = ConfirmDialog()
     dialog.show(title, message, callback)

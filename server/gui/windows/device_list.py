@@ -12,7 +12,7 @@ class DeviceListPanel:
     def __init__(self, server: QuestControlServer, parent_tag: str):
         self.server = server
         self.parent_tag = parent_tag
-        self.selected_device_ids: Set[str] = set()  # Changed to set for multiple selection
+        self.selected_device_ids: Set[str] = set()
         self.device_rows: Dict[str, str] = {}
         self.table_tag = None
         self.colors = get_status_colors()
@@ -26,7 +26,6 @@ class DeviceListPanel:
             dpg.add_text("Connected Devices", tag="device_list_title")
             dpg.add_separator()
             
-            # Select/Deselect all buttons
             with dpg.group(horizontal=True):
                 dpg.add_button(
                     label="Select All",
@@ -93,7 +92,6 @@ class DeviceListPanel:
         self._update_device_row(device)
     
     def _on_device_name_changed(self, data: dict):
-        """Handle device name change event with proper data structure"""
         device_id = data.get('device_id')
         if device_id and device_id in self.device_rows:
             device = self.server.get_device_by_id(device_id)
@@ -118,27 +116,22 @@ class DeviceListPanel:
         self.device_rows[device_id] = row_tag
         
         with dpg.table_row(parent=self.table_tag, tag=row_tag):
-            # Cell 1: Checkbox for selection
             checkbox_tag = dpg.add_checkbox(
                 default_value=device_id in self.selected_device_ids,
                 callback=lambda s, v: self._on_device_checkbox_changed(device_id, v)
             )
             self.checkbox_tags[device_id] = checkbox_tag
             
-            # Cell 2: Device name (clickable)
             device_tag = dpg.add_selectable(
                 label=device.get_display_name(),
                 callback=lambda: self._on_device_clicked(device_id),
                 span_columns=True
             )
             
-            # Cell 3: IP address
             ip_tag = dpg.add_text(device.device_info.ip if device.device_info else "Unknown")
             
-            # Cell 4: Battery status
             battery_tag = dpg.add_text(self._get_battery_text(device))
             
-            # Store tags for updates
             dpg.set_item_user_data(row_tag, {
                 'checkbox': checkbox_tag,
                 'device': device_tag,
@@ -156,15 +149,12 @@ class DeviceListPanel:
         tags = dpg.get_item_user_data(row_tag)
         
         if tags:
-            # Update device name by configuring the selectable's label
             if 'device' in tags:
                 dpg.configure_item(tags['device'], label=device.get_display_name())
             
-            # Update battery
             if 'battery' in tags:
                 dpg.set_value(tags['battery'], self._get_battery_text(device))
             
-            # Update battery color based on level
             if device.battery_info and 'battery' in tags:
                 level = device.battery_info.headset_level
                 if level < 20:
@@ -190,28 +180,23 @@ class DeviceListPanel:
         self._update_selected_count()
     
     def _on_device_clicked(self, device_id: str):
-        """Handle device click - show details in the details panel"""
         device = self.server.get_device_by_id(device_id)
         if device:
-            # Update device details panel
             event_bus.emit(EventType.DEVICE_UPDATED, device)
     
     def _select_all(self):
-        """Select all devices"""
         for device_id, checkbox_tag in self.checkbox_tags.items():
             dpg.set_value(checkbox_tag, True)
             self.selected_device_ids.add(device_id)
         self._update_selected_count()
     
     def _deselect_all(self):
-        """Deselect all devices"""
         for checkbox_tag in self.checkbox_tags.values():
             dpg.set_value(checkbox_tag, False)
         self.selected_device_ids.clear()
         self._update_selected_count()
     
     def _update_selected_count(self):
-        """Update the selected devices count display"""
         count = len(self.selected_device_ids)
         total = len(self.device_rows)
         text = f"Selected: {count}/{total}" if total > 0 else ""
@@ -219,14 +204,12 @@ class DeviceListPanel:
             dpg.set_value("selected_count_text", text)
     
     def get_selected_device(self) -> Optional[QuestDevice]:
-        """Get the first selected device (for backwards compatibility)"""
         if self.selected_device_ids:
             device_id = next(iter(self.selected_device_ids))
             return self.server.get_device_by_id(device_id)
         return None
     
     def get_selected_devices(self) -> list[QuestDevice]:
-        """Get all selected devices"""
         devices = []
         for device_id in self.selected_device_ids:
             device = self.server.get_device_by_id(device_id)

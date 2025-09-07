@@ -68,7 +68,6 @@ class QuestDevice:
         return f"{self.address[0]}:{self.address[1]}"
     
     def invalidate_name_cache(self):
-        """Force the display name to be recalculated on next access"""
         self._cached_display_name = None
         self._cached_name_serial = None
     
