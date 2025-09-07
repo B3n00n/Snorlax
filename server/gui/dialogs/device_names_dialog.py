@@ -12,6 +12,7 @@ class DeviceNamesDialog:
         self.dialog_tag = None
         self.table_tag = None
         self.input_tags: Dict[str, str] = {}  # serial -> input_tag
+        self.row_tags: Dict[str, str] = {}  # serial -> row_tag
     
     def show(self):
         self.dialog_tag = dpg.generate_uuid()
@@ -22,9 +23,9 @@ class DeviceNamesDialog:
             modal=True,
             show=True,
             tag=self.dialog_tag,
-            width=500,
+            width=600,
             height=400,
-            pos=[dpg.get_viewport_width() // 2 - 250, dpg.get_viewport_height() // 2 - 200],
+            pos=[dpg.get_viewport_width() // 2 - 300, dpg.get_viewport_height() // 2 - 200],
             on_close=lambda: dpg.delete_item(self.dialog_tag)
         ):
             dpg.add_text("Manage custom names for Combatica Quest devices")
@@ -40,7 +41,9 @@ class DeviceNamesDialog:
                 ):
                     dpg.add_table_column(label="Serial Number", width_fixed=True, init_width_or_weight=200)
                     dpg.add_table_column(label="Custom Name", width_stretch=True)
+                    dpg.add_table_column(label="Action", width_fixed=True, init_width_or_weight=80)
                     
+                    # Add connected devices
                     devices = self.server.get_connected_devices()
                     for device in devices:
                         if device.device_info:
@@ -49,6 +52,7 @@ class DeviceNamesDialog:
                                 True
                             )
                     
+                    # Add disconnected devices that have custom names
                     all_names = device_name_manager.get_all_names()
                     connected_serials = {d.device_info.serial for d in devices if d.device_info}
                     disconnected_serials = set(all_names.keys()) - connected_serials
@@ -73,9 +77,12 @@ class DeviceNamesDialog:
     
     def _add_device_row(self, serial: str, is_connected: bool):
         input_tag = dpg.generate_uuid()
-        self.input_tags[serial] = input_tag
+        row_tag = dpg.generate_uuid()
         
-        with dpg.table_row(parent=self.table_tag):
+        self.input_tags[serial] = input_tag
+        self.row_tags[serial] = row_tag
+        
+        with dpg.table_row(parent=self.table_tag, tag=row_tag):
             color = (100, 250, 100) if is_connected else (150, 150, 150)
             status = "[CONNECTED] " if is_connected else "[OFFLINE] "
             dpg.add_text(f"{status}{serial}", color=color)
@@ -87,6 +94,36 @@ class DeviceNamesDialog:
                 hint="Enter custom name",
                 width=-1
             )
+            
+            dpg.add_button(
+                label="Remove",
+                callback=lambda: self._remove_device(serial),
+                width=70,
+                small=True
+            )
+    
+    def _remove_device(self, serial: str):
+        device_name_manager.remove_name(serial)
+        
+        for device in self.server.get_connected_devices():
+            if device.device_info and device.device_info.serial == serial:
+                device.invalidate_name_cache()
+                
+                event_bus.emit(EventType.DEVICE_NAME_CHANGED, {
+                    'device_id': device.get_id(),
+                    'serial': serial,
+                    'new_name': None
+                })
+                event_bus.emit(EventType.DEVICE_UPDATED, device)
+                break
+        
+        if serial in self.row_tags and dpg.does_item_exist(self.row_tags[serial]):
+            dpg.delete_item(self.row_tags[serial])
+        
+        if serial in self.input_tags:
+            del self.input_tags[serial]
+        if serial in self.row_tags:
+            del self.row_tags[serial]
     
     def _save_all(self):
         changes_made = False
