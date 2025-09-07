@@ -50,15 +50,12 @@ class APKHttpServer:
     def stop(self):
         self.running = False
         if self.server:
-            logger.info("Shutting down HTTP server...")
             self.server.shutdown()
             self.server.server_close()
         
         if self.thread and self.thread.is_alive():
             self.thread.join(timeout=5)
-        
-        logger.info("APK HTTP server stopped")
-    
+            
     def get_local_ip(self) -> str:
         if not self._local_ip:
             try:
