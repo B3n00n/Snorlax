@@ -67,7 +67,9 @@ class APKManagerDialog:
         dpg.delete_item(self.file_list_tag, children_only=True)
         
         apk_files = self.server.get_available_apks()
-        apk_dir = self.server.apk_server.apk_directory
+        apk_dir = getattr(self.server.apk_server, 'apk_directory', 'apks')
+        if apk_dir is None:
+            apk_dir = 'apks'
         
         if not apk_files:
             dpg.add_text(
@@ -90,9 +92,14 @@ class APKManagerDialog:
                 
                 dpg.add_button(
                     label="Remove",
-                    callback=lambda s, a, f=apk_file: self._remove_file(f),
+                    callback=self._remove_button_callback,
+                    user_data=apk_file,
                     small=True
                 )
+    
+    def _remove_button_callback(self, sender, app_data, user_data):
+        filename = user_data
+        self._remove_file(filename)
     
     def _show_file_selector(self):
         file_dialog_tag = dpg.generate_uuid()
@@ -124,19 +131,35 @@ class APKManagerDialog:
     def _copy_apk_to_server(self, source_path: str):
         try:
             filename = os.path.basename(source_path)
-            dest_path = os.path.join(self.server.apk_server.apk_directory, filename)
+            apk_dir = getattr(self.server.apk_server, 'apk_directory', 'apks')
+            if apk_dir is None:
+                apk_dir = 'apks'
+            
+            os.makedirs(apk_dir, exist_ok=True)
+            
+            dest_path = os.path.join(apk_dir, filename)
             
             shutil.copy2(source_path, dest_path)
             logger.info(f"Copied APK to server: {filename}")
         except Exception as e:
             logger.error(f"Error copying APK: {e}")
     
+    def _refresh_list(self):
+        self._populate_file_list()
+    
     def _remove_file(self, filename: str):
         try:
-            apk_dir = self.server.apk_server.apk_directory
-            if not apk_dir:
-                logger.error("APK directory is not set")
+            logger.info(f"Attempting to remove file: {filename}")
+            
+            if filename is None:
+                logger.error("Filename is None!")
                 return
+                
+            apk_dir = 'apks'
+            
+            if hasattr(self.server, 'apk_server') and hasattr(self.server.apk_server, 'apk_directory'):
+                if self.server.apk_server.apk_directory:
+                    apk_dir = self.server.apk_server.apk_directory
                 
             file_path = os.path.join(apk_dir, filename)
             
@@ -145,27 +168,31 @@ class APKManagerDialog:
                 logger.info(f"Removed APK: {filename}")
                 self._refresh_list()
             else:
-                logger.error(f"File not found: {filename}")
+                logger.error(f"File not found: {file_path}")
                 self._refresh_list()
                 
         except Exception as e:
-            logger.error(f"Error removing APK: {e}")
-    
-    def _refresh_list(self):
-        self._populate_file_list()
+            logger.error(f"Error removing APK {filename}: {str(e)}")
+            self._refresh_list()
     
     def _open_apk_folder(self):
         import platform
         import subprocess
         
-        apk_dir = os.path.abspath(self.server.apk_server.apk_directory)
+        apk_dir = getattr(self.server.apk_server, 'apk_directory', 'apks')
+        if apk_dir is None:
+            apk_dir = 'apks'
+        
+        apk_dir = os.path.abspath(apk_dir)
+        
+        os.makedirs(apk_dir, exist_ok=True)
         
         try:
             if platform.system() == "Windows":
                 os.startfile(apk_dir)
             elif platform.system() == "Darwin":
                 subprocess.Popen(["open", apk_dir])
-            else:  # Linux
+            else:
                 subprocess.Popen(["xdg-open", apk_dir])
         except Exception as e:
-            logger.error(f"Error opening APK folder: {e}")
+            pass 

@@ -58,14 +58,14 @@ class ActionsPanel:
             
             with dpg.group(horizontal=True):
                 dpg.add_button(
-                    label="Install APK",
+                    label="Install Remote APK",
                     callback=self._show_install_apk_dialog,
-                    width=120
+                    width=135
                 )
                 dpg.add_button(
                     label="Install Local APK",
                     callback=self._show_install_local_apk_dialog,
-                    width=120
+                    width=135
                 )
             
             dpg.add_spacer(height=10)
@@ -397,7 +397,7 @@ class ActionsPanel:
             show=True,
             tag=dialog_tag,
             width=500,
-            height=250,
+            height=200,
             pos=[dpg.get_viewport_width() // 2 - 250, dpg.get_viewport_height() // 2 - 125]
         ):
             dpg.add_text(f"Install on: {device_names}", wrap=480)
@@ -410,11 +410,7 @@ class ActionsPanel:
                 default_value="Select an APK...",
                 width=-1
             )
-        
-            dpg.add_spacer(height=10)
-        
-            dpg.add_text("APK files location: ./apks/", color=(150, 150, 150))
-        
+                        
             dpg.add_spacer(height=10)
         
             with dpg.group(horizontal=True):
