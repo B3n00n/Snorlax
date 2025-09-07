@@ -43,13 +43,11 @@ class DownloadAndInstallApkHandler(private val context: Context) : MessageHandle
     private fun downloadAndInstallApk(apkUrl: String, commandHandler: CommandHandler) {
         val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
 
-        // Extract filename from URL
         val urlFileName = apkUrl.substringAfterLast("/").substringBefore("?")
         val fileName = if (urlFileName.endsWith(".apk")) urlFileName else "download_${System.currentTimeMillis()}.apk"
 
         Log.d(TAG, "Downloading to filename: $fileName")
 
-        // Create download request
         val request = DownloadManager.Request(Uri.parse(apkUrl)).apply {
             setTitle("Downloading $fileName")
             setDescription("Downloading APK for installation")
@@ -171,20 +169,17 @@ class DownloadAndInstallApkHandler(private val context: Context) : MessageHandle
         try {
             Log.d(TAG, "Installing APK: ${apkFile.absolutePath}")
 
-            // Get package info for better feedback
             val packageInfo = context.packageManager.getPackageArchiveInfo(apkFile.absolutePath, 0)
             val packageName = packageInfo?.packageName ?: "unknown"
             Log.d(TAG, "Package to install: $packageName")
 
-            // Use Quest-specific installer
             when (val result = QuestApkInstaller.installApk(context, apkFile)) {
                 is QuestApkInstaller.InstallResult.Success -> {
                     commandHandler.sendResponse(true, result.message)
 
-                    // Schedule a check to see if installation completed
                     if (packageName != "unknown") {
                         downloadScope.launch {
-                            delay(15000) // Wait 15 seconds
+                            delay(15000)
                             checkInstallationStatus(packageName, commandHandler)
                         }
                     }
@@ -210,7 +205,7 @@ class DownloadAndInstallApkHandler(private val context: Context) : MessageHandle
             if (isInstalled) {
                 commandHandler.sendResponse(
                     true,
-                    "✅ Installation verified! $packageName is now installed."
+                    "Installation verified! $packageName is now installed."
                 )
             } else {
                 Log.d(TAG, "$packageName not found after installation attempt")

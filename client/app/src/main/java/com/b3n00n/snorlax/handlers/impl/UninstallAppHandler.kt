@@ -84,7 +84,7 @@ class UninstallAppHandler(private val context: Context) : MessageHandler {
             packageInstaller.uninstall(packageName, pendingIntent.intentSender)
 
             Log.d(TAG, "Uninstall initiated for $packageName")
-            commandHandler.sendResponse(true, "✅ Uninstalling $packageName...")
+            commandHandler.sendResponse(true, "Uninstalling $packageName...")
 
         } catch (e: Exception) {
             Log.e(TAG, "Silent uninstall failed", e)
