@@ -39,7 +39,7 @@ class ActionsPanel:
             dpg.add_spacer(height=10)
             
             # Combatica App Management
-            dpg.add_text("Combatica App Management", color=(100, 200, 250))
+            dpg.add_text("App Management")
             with dpg.group(horizontal=True):
                 dpg.add_button(
                     label="Launch App",
