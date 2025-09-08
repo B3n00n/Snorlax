@@ -42,14 +42,14 @@ class ActionsPanel:
             dpg.add_text("Combatica App Management", color=(100, 200, 250))
             with dpg.group(horizontal=True):
                 dpg.add_button(
-                    label="Launch Combatica App",
+                    label="Launch App",
                     callback=self._show_launch_combatica_app_dialog,
-                    width=160
+                    width=120
                 )
                 dpg.add_button(
-                    label="Uninstall Combatica App",
+                    label="Uninstall App",
                     callback=self._show_uninstall_combatica_app_dialog,
-                    width=160
+                    width=120
                 )
             
             dpg.add_spacer(height=5)
