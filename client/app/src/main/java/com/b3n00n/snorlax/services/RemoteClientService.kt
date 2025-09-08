@@ -184,6 +184,7 @@ class RemoteClientService : Service(), ConnectionManager.ConnectionListener {
 
     override fun onDisconnected() {
         Log.d(TAG, "Disconnected from server")
+        stopHeartbeat()
         updateNotification()
     }
 
