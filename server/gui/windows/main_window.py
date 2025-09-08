@@ -5,6 +5,7 @@ from core.models import MessageType
 from .device_list import DeviceListPanel
 from .device_details import DeviceDetailsPanel
 from .actions_panel import ActionsPanel
+from .dev_actions_panel import DevActionsPanel
 from utils.event_bus import event_bus, EventType
 
 
@@ -14,13 +15,13 @@ class MainWindow:
         self.device_list_panel = None
         self.device_details_panel = None
         self.actions_panel = None
+        self.dev_actions_panel = None
         self.status_tag = None
         
         self._setup_ui()
         self._subscribe_events()
     
     def _setup_ui(self):
-        # Create main window
         with dpg.window(tag="main_window", label="Combatica Quest Control Center", no_close=True):
             # Menu bar
             with dpg.menu_bar():
@@ -38,28 +39,39 @@ class MainWindow:
                     dpg.add_separator()
                     dpg.add_menu_item(label="Device Names Manager", callback=self._show_device_names_manager)
                     dpg.add_menu_item(label="APK File Manager", callback=self._show_apk_manager)
+                
+                with dpg.menu(label="Dev"):
+                    dpg.add_menu_item(label="Toggle Developer Mode", callback=self._toggle_dev_mode)
             
-            # Status bar
             self.status_tag = dpg.add_text("Server: Stopped", color=(200, 200, 200))
             dpg.add_separator()
             
-            # Create horizontal layout with resizable panels
             with dpg.group(horizontal=True):
-                # Left panel - Device list
                 with dpg.child_window(width=500, height=-30, border=True):
                     self.device_list_panel = DeviceListPanel(self.server, dpg.last_item())
                 
-                # Middle panel - Device details  
                 with dpg.child_window(width=450, height=-30, border=True):
                     self.device_details_panel = DeviceDetailsPanel(dpg.last_item())
                 
-                # Right panel - Actions
                 with dpg.child_window(width=-1, height=-30, border=True):
-                    self.actions_panel = ActionsPanel(
-                        self.server, 
-                        self.device_list_panel, 
-                        dpg.last_item()
-                    )
+                    with dpg.tab_bar():
+                        with dpg.tab(label="Actions"):
+                            actions_container = dpg.generate_uuid()
+                            with dpg.child_window(tag=actions_container, border=False):
+                                self.actions_panel = ActionsPanel(
+                                    self.server, 
+                                    self.device_list_panel, 
+                                    actions_container
+                                )
+                        
+                        with dpg.tab(label="Dev", show=False, tag="dev_tab"):
+                            dev_container = dpg.generate_uuid()
+                            with dpg.child_window(tag=dev_container, border=False):
+                                self.dev_actions_panel = DevActionsPanel(
+                                    self.server,
+                                    self.device_list_panel,
+                                    dev_container
+                                )
     
     def _subscribe_events(self):
         event_bus.subscribe(EventType.SERVER_STARTED, self._on_server_started)
@@ -81,6 +93,20 @@ class MainWindow:
     def _on_error(self, error_message: str):
         if self.actions_panel:
             self.actions_panel._log_message(error_message, "error")
+        if self.dev_actions_panel and dpg.does_item_exist("dev_tab") and dpg.get_item_configuration("dev_tab")["show"]:
+            self.dev_actions_panel._log_message(error_message, "error")
+    
+    def _toggle_dev_mode(self):
+        if dpg.does_item_exist("dev_tab"):
+            current_state = dpg.get_item_configuration("dev_tab")["show"]
+            dpg.configure_item("dev_tab", show=not current_state)
+            
+            if not current_state:
+                if self.actions_panel:
+                    self.actions_panel._log_message("Developer mode enabled", "warning")
+            else:
+                if self.actions_panel:
+                    self.actions_panel._log_message("Developer mode disabled", "info")
     
     def _start_server(self):
         if not self.server.running:
@@ -99,11 +125,9 @@ class MainWindow:
             host = dpg.get_value(host_tag)
             port = int(dpg.get_value(port_tag))
             
-            # Stop server if running
             if self.server.running:
                 self.server.stop()
             
-            # Update server settings
             self.server.host = host
             self.server.port = port
             
@@ -150,6 +174,9 @@ class MainWindow:
     def _clear_all_logs(self):
         if self.actions_panel and self.actions_panel.log_tag and dpg.does_item_exist(self.actions_panel.log_tag):
             dpg.delete_item(self.actions_panel.log_tag, children_only=True)
+        
+        if self.dev_actions_panel and self.dev_actions_panel.log_tag and dpg.does_item_exist(self.dev_actions_panel.log_tag):
+            dpg.delete_item(self.dev_actions_panel.log_tag, children_only=True)
         
         if (self.device_details_panel and 
             self.device_details_panel.detail_tags.get('command_history') and 
