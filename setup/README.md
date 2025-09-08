@@ -1,8 +1,11 @@
 ## What's this for?
 
-This sets up Snorlax as the device owner on your Meta Quest headset. If you don't know what Snorlax is or why you'd want it as device owner, this tool probably isn't for you. But if you do know, this automates the whole painful process of downloading, installing, and configuring it.
+This sets up Snorlax as the device owner on your Meta Quest headset. this automates the whole painful process of downloading, installing, and configuring it.
 
 The tool checks if you've got a Quest connected, downloads Snorlax if needed, installs it, and sets it up as device owner.
+
+<img width="600" height="676" alt="image" src="https://github.com/user-attachments/assets/884e5ef2-3f9b-4e1b-aa22-6453685666a8" />
+
 
 ## Before you start
 
