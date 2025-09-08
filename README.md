@@ -13,7 +13,7 @@ The Android app that runs on your Quest. Turns your headset into a remotely cont
 Desktop GUI server that talks to Snorlax. Manage multiple Quest devices from one interface. Built with Python and Dear PyGui.
 
 ### 🔧 [SnorlaxSetup](./setup/)
-Windows tool that automates the painful setup process. Handles the ADB commands, device owner setup, and all that jazz. One click and you're done.
+Windows tool that automates the painful setup process. Handles the ADB commands, device owner setup, and all that crap. One click and you're done.
 
 ## Quick Start
 
@@ -25,8 +25,8 @@ Windows tool that automates the painful setup process. Handles the ADB commands,
 ## The Stack
 
 - **Snorlax**: Kotlin, Android Service, TCP client
-- **Control Center**: Python, DearPyGui, TCP/HTTP servers
-- **Setup Tool**: Python, customtkinter, ADB wrapper
+- **SnorlaxServer**: Python, DearPyGui, TCP/HTTP servers
+- **SnorlaxSetup**: Python, customtkinter, ADB wrapper
 
 ## Use Cases
 
