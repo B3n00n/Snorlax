@@ -2,7 +2,7 @@
 
 A GUI control server for managing Quest headsets running Snorlax.
 
-<img width="1384" height="789" alt="image" src="https://github.com/user-attachments/assets/62a8c789-4c28-465f-892a-47e3cafb0e8c" />
+<img width="1381" height="785" alt="image" src="https://github.com/user-attachments/assets/c6b34f81-6303-4b63-b97b-2fe039a1c9b3" />
 
 ## Features
 
