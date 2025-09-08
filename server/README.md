@@ -11,9 +11,7 @@ A GUI control server for managing Quest headsets running Snorlax.
 - **Multi select**: Control multiple devices at once
 - **Real time updates**: Battery status, connection state, everything updates live
 - **Command history**: See what commands ran on each device
-
-### The good stuff
-- **Combatica App Focus**: Special handling for Combatica apps
+- **App Focus**: Special handling for specific organization apps
 - **APK Server**: Built in HTTP server for hosting APKs locally
 - **Custom Device Names** - Name your quest devices
 - **Developer Mode** - More dev functionality
@@ -69,11 +67,11 @@ Two ways to install APKs:
 4. Pick from dropdown
 5. Way faster than uploading to cloud storage
 
-### Combatica apps
-If you're working with Combatica apps, life is easier:
-- **Launch**: Dropdown shows only Combatica apps installed on selected devices
+### Organization apps
+If you're working with organization specific apps, life is easier:
+- **Launch**: Dropdown shows only organization apps installed on selected devices
 - **Uninstall**: Same deal, but for removing them
-- **List**: Shows all Combatica apps with nice formatting
+- **List**: Shows all organization apps with nice formatting
 
 ### Power user stuff
 Enable Developer Mode (Menu → Dev) for:
@@ -127,4 +125,4 @@ Because:
 
 ## License
 
-B3n00n / Combatica LTD
+B3n00n
