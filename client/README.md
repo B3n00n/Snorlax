@@ -113,5 +113,4 @@ The app uses a custom binary protocol over TCP:
 Because it runs in the background doing nothing most of the time, then wakes up when you need it to do something. Also I was tired when naming it :^).
 
 ## License
-
-Made by B3n00n / Combatica LTD
+B3n00n
