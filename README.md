@@ -9,7 +9,7 @@ This repo contains three interconnected projects:
 ### 🎮 [Snorlax](./client/)
 The Android app that runs on your Quest. Turns your headset into a remotely controllable device. Install APKs, check battery, launch apps - without putting the headset on your face.
 
-### 🖥️ [Quest Control Center](./server/)
+### 🖥️ [SnorlaxServer](./server/)
 Desktop GUI server that talks to Snorlax. Manage multiple Quest devices from one interface. Built with Python and Dear PyGui.
 
 ### 🔧 [SnorlaxSetup](./setup/)
@@ -47,8 +47,8 @@ Windows tool that automates the painful setup process. Handles the ADB commands,
 
 Each project has its own detailed README:
 - [Snorlax README](./client/README.md) - The Quest app
-- [Control Center README](./server/README.md) - The server
-- [Setup Tool README](./setup/README.md) - The installer
+- [SnorlaxServer README](./server/README.md) - The server
+- [SnorlaxSetup README](./setup/README.md) - The installer
 
 ## License
 
