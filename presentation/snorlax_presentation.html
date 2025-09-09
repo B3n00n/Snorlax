@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snorlax Quest Management - Training Presentation</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #1a1a1a;
+            color: #ffffff;
+            overflow: hidden;
+        }
+
+        .presentation-container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .slide {
+            display: none;
+            padding: 60px;
+            height: calc(100vh - 120px);
+            overflow-y: auto;
+            animation: fadeIn 0.5s;
+        }
+
+        .slide.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .slide-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px;
+            margin: -60px -60px 40px -60px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 3.5em;
+            margin: 0;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        h2 {
+            font-size: 2.5em;
+            color: #667eea;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 15px;
+        }
+
+        h3 {
+            font-size: 1.8em;
+            color: #9bb5ff;
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }
+
+        .controls {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #2d2d2d;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            font-size: 1em;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        button:disabled {
+            background: #4a4a4a;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .slide-info {
+            color: #aaa;
+            font-size: 1.1em;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin: 30px 0;
+        }
+
+        .feature-card {
+            background: #2d2d2d;
+            padding: 25px;
+            border-radius: 12px;
+            border: 2px solid #3d3d3d;
+            transition: all 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            border-color: #667eea;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .feature-card h4 {
+            color: #9bb5ff;
+            margin-top: 0;
+            font-size: 1.3em;
+        }
+
+        .code-block {
+            background: #0d0d0d;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            font-family: 'Consolas', 'Monaco', monospace;
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+
+        .step-list {
+            counter-reset: step-counter;
+            list-style: none;
+            padding: 0;
+        }
+
+        .step-list li {
+            counter-increment: step-counter;
+            margin: 20px 0;
+            padding: 20px;
+            background: #2d2d2d;
+            border-radius: 8px;
+            position: relative;
+            padding-left: 70px;
+        }
+
+        .step-list li::before {
+            content: counter(step-counter);
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #667eea;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+
+        .warning-box {
+            background: #ff6b6b;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .warning-box::before {
+            content: "!";
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+
+        .success-box {
+            background: #51cf66;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .success-box::before {
+            content: "+";
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+
+        .info-box {
+            background: #339af0;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .info-box::before {
+            content: "i";
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+
+        ul {
+            line-height: 1.8;
+        }
+
+        li {
+            margin: 10px 0;
+        }
+
+        .highlight {
+            background: #667eea;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        th,
+        td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #3d3d3d;
+        }
+
+        th {
+            background: #2d2d2d;
+            color: #9bb5ff;
+            font-weight: bold;
+        }
+
+        tr:hover {
+            background: #2d2d2d;
+        }
+
+        .screenshot {
+            background: #2d2d2d;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            margin: 20px 0;
+            border: 2px solid #3d3d3d;
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .screenshot img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+
+        .screenshot p {
+            color: #aaa;
+            font-style: italic;
+            margin: 10px 0;
+        }
+
+        .rant-text {
+            font-size: 1.1em;
+            line-height: 1.8;
+            max-width: 800px;
+            margin: 20px auto;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="presentation-container">
+        <!-- Slide 2: Overview -->
+        <div class="slide">
+            <h2>System Overview</h2>
+            <p style="font-size: 1.2em;">Snorlax is a three-part system designed to make Quest management simple and
+                efficient.</p>
+
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h4>Snorlax Setup</h4>
+                    <p><strong>Purpose:</strong> Automated setup tool for Quests</p>
+                    <ul>
+                        <li>One-click installation process</li>
+                        <li>Handles ADB configuration</li>
+                        <li>Sets device owner permissions</li>
+                        <li>GUI application</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card">
+                    <h4>Snorlax Client</h4>
+                    <p><strong>Purpose:</strong> Background service running on Quest</p>
+                    <ul>
+                        <li>Receives remote commands</li>
+                        <li>Manages app installations</li>
+                        <li>Reports battery status</li>
+                        <li>Executes system operations</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card">
+                    <h4>Snorlax Server</h4>
+                    <p><strong>Purpose:</strong> PC GUI control interface</p>
+                    <ul>
+                        <li>Manages multiple Quest devices</li>
+                        <li>Real-time device monitoring</li>
+                        <li>Batch operations support</li>
+                        <li>Cross-platform compatibility</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 3: Setup Requirements -->
+        <div class="slide">
+            <h2>Initial Setup Requirements</h2>
+
+            <h3>Prerequisites</h3>
+            <table>
+                <tr>
+                    <th>Component</th>
+                    <th>Requirement</th>
+                    <th>Notes</th>
+                </tr>
+                <tr>
+                    <td>Quest Device</td>
+                    <td>Factory Reset State</td>
+                    <td>Must be freshly reset for device owner setup</td>
+                </tr>
+                <tr>
+                    <td>Developer Mode</td>
+                    <td>Enabled</td>
+                    <td>Required for ADB access</td>
+                </tr>
+                <tr>
+                    <td>Network</td>
+                    <td>Internet connection</td>
+                    <td>Quest needs an internet connection since it downloads Snorlax APK from the cloud. PC doesn't
+                        matter</td>
+                </tr>
+                <tr>
+                    <td>ADB Tools</td>
+                    <td>Platform Tools</td>
+                    <td>Auto-detected or manually specified</td>
+                </tr>
+            </table>
+
+            <h3>Network Configuration</h3>
+            <ul>
+                <li>Default server port: <span class="highlight">8888</span> (TCP)</li>
+                <li>HTTP server port: <span class="highlight">8889</span> (for local APK hosting)</li>
+                <li>Make sure these ports are unused/not blocked by firewall</li>
+            </ul>
+        </div>
+
+        <!-- Slide 4: Using SnorlaxSetup -->
+        <div class="slide">
+            <h2>Part 1: SnorlaxSetup Tool</h2>
+            <p style="font-size: 1.2em;">The Windows application that automates the entire Quest setup process.</p>
+
+            <h3>Setup Process</h3>
+            <ol class="step-list">
+                <li>
+                    <strong>Connect Quest via USB</strong><br>
+                    Connect a Quest via USB
+                </li>
+                <li>
+                    <strong>Launch SnorlaxSetup.exe</strong><br>
+                    The tool will auto-detect the connected device (Only quest devices will get detected, emulators may
+                    shit on this detection, so close them if opened prior)
+                </li>
+                <li>
+                    <strong>Verify Device Status</strong><br>
+                    Check that all indicators show green/ready state
+                </li>
+                <li>
+                    <strong>Click "Start Setup"</strong><br>
+                    The tool will download and install Snorlax automatically
+                </li>
+                <li>
+                    <strong>Wait for Completion</strong><br>
+                    Process takes 30 seconds ish depending on connection, Snorlax size and apk installation on device.
+                </li>
+            </ol>
+
+            <div class="screenshot">
+                <img src="snorlax-setup.png" alt="SnorlaxSetup Interface">
+            </div>
+
+            <h3>Advanced Settings</h3>
+            <div class="code-block">
+                ADB Path Configuration:
+                - Default: C:\platform-tools\adb.exe
+                - Custom path can be set via Advanced button
+                - Tool auto-detects common ADB locations
+            </div>
+
+            <div class="screenshot">
+                <img src="snorlax-setup-advanced.png" alt="SnorlaxSetup advanced">
+            </div>
+        </div>
+
+        <!-- Slide 5: Understanding Snorlax App -->
+        <div class="slide">
+            <h2>Part 2: Snorlax App on Quest</h2>
+            <p style="font-size: 1.2em;">The background service that enables remote control of Quest devices.</p>
+
+            <h3>How It Works</h3>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h4>Auto-Start Service</h4>
+                    <p>Snorlax starts automatically on boot and runs in the background. No user interaction needed!</p>
+                </div>
+                <div class="feature-card">
+                    <h4>Device Owner Mode</h4>
+                    <p>Special Android permissions allow silent app installation and system management.</p>
+                </div>
+                <div class="feature-card">
+                    <h4>Network Connection</h4>
+                    <p>Maintains persistent connection to control server.</p>
+                </div>
+                <div class="feature-card">
+                    <h4>Configuration</h4>
+                    <p>Server IP can be changed via the config screen (appears when launching through device
+                        notifications).</p>
+                </div>
+            </div>
+
+            <h3>Changing Server Configuration</h3>
+            <ol>
+                <li>Launch Snorlax app from Quest notifications (if needed to change server)</li>
+                <li>Enter new server IP address</li>
+                <li>Enter server port (default: 8888)</li>
+                <li>Click "Save & Apply"</li>
+                <li>Service will restart with new settings</li>
+            </ol>
+
+            <div class="screenshot">
+                <img src="snorlaxquest.jpg" alt="Snorlax Configuration Screen">
+            </div>
+        </div>
+
+        <!-- Slide 6: SnorlaxServer Overview -->
+        <div class="slide">
+            <h2>Part 3: SnorlaxServer Control Center</h2>
+            <p style="font-size: 1.2em;">The desktop application for managing all connected Quest devices.</p>
+
+            <img src="snorlaxserver.png" alt="Connected Devices List">
+
+            <h3>Main Interface Components</h3>
+            <table>
+                <tr>
+                    <th>Panel</th>
+                    <th>Function</th>
+                    <th>Key Features</th>
+                </tr>
+                <tr>
+                    <td>Device List</td>
+                    <td>Shows all connected Quests</td>
+                    <td>• Real-time status<br>• Battery levels<br>• Multi-select support</td>
+                </tr>
+                <tr>
+                    <td>Device Details</td>
+                    <td>Detailed info for selected device</td>
+                    <td>• Serial number<br>• IP address<br>• Command history</td>
+                </tr>
+                <tr>
+                    <td>Actions Panel</td>
+                    <td>Execute commands</td>
+                    <td>• App management<br>• System controls<br>• Batch operations</td>
+                </tr>
+                <tr>
+                    <td>Command Log</td>
+                    <td>Operation feedback</td>
+                    <td>• Success/failure status<br>• Detailed messages<br>• Color-coded output</td>
+                </tr>
+            </table>
+
+            <h3>Starting the Server</h3>
+            <ol>
+                <li>Launch SnorlaxServer.exe</li>
+                <li>Server → Start Server (from menu) - Should start automatically, but anyway</li>
+                <li>Devices will connect automatically considering they are configured properly (Same LAN, proper IP
+                    configured)</li>
+                <li>Green status = Server Running</li>
+            </ol>
+        </div>
+
+        <!-- Slide 7: Developer Mode -->
+        <div class="slide">
+            <h2>Developer Mode Features</h2>
+            <p style="font-size: 1.2em;">Advanced tools for power users and debugging scenarios.</p>
+
+            <h3>Accessing Developer Mode</h3>
+            <img src="developertoolbar.png" alt="devtoolsbar">
+
+            <h3>Dev Tools Panel</h3>
+            <img src="devtools.png" alt="devtools">
+
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h4>Shell Command Execution</h4>
+                    <p>Run any ADB shell command directly on selected devices (Meta custom OS blocks most shell
+                        commands)</p>
+                    <ul>
+                        <li>Execute system commands</li>
+                        <li>Query device properties</li>
+                        <li>Access log files</li>
+                        <li>Debug app issues</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card">
+                    <h4>Manual Package Management</h4>
+                    <p>Launch and Uninstallation control over installed applications by package name</p>
+                    <ul>
+                        <li>Launch any app by package name</li>
+                        <li>Uninstall all device apps (except Snorlax itself, ha-ha)</li>
+                        <li>List all installed packages</li>
+                        <li>Clear app data/cache</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 8: Management Features -->
+        <div class="slide">
+            <h2>Management Features</h2>
+
+            <h3>Custom Device Names</h3>
+            <p>Make device identification easier with custom names:</p>
+            <ol>
+                <li>View → Device Names Manager</li>
+                <img src="viewview.png" alt="Device Names Manager">
+                <li>Enter stupid names (e.g., "Tembel 1", "Tembel 2")</li>
+                <li>Click "Save All Changes"</li>
+                <li>Names persist across sessions</li>
+            </ol>
+
+            <img src="names.png" alt="Device Names Manager">
+
+            <h3>APK File Management</h3>
+            <p>Manage your APK library:</p>
+            <ul>
+                <li>View → APK File Manager</li>
+                <li>Add APK files from your computer</li>
+                <li>Remove outdated versions</li>
+                <li>Open folder to manually manage</li>
+            </ul>
+
+            <img src="apkmanager.png" alt="Device apk Manager">
+
+            <p>Browse to add into APK library:</p>
+            <img src="browser.png" alt="brwoser apk Manager">
+
+            <h3>App Uninstallation/ App Launch</h3>
+            <img src="uninstall.png" alt="installremote">
+
+
+            <h3>APK installation, Remote and Local</h3>
+            <p>Remote install (Accepts any direct http/https downloads)</p>
+            <img src="installremote.png" alt="installremote">
+
+            <p>Local install (Reads all apk's in apk folder)</p>
+            <img src="localinstall.png" alt="localinstall">
+
+            <div>
+                <h3>Ping</h3>
+                <p>Pings selected devices. (Plays a sound from the quest)</p>
+                <p>The quest device needs to be in 'awake' mode for this</p>
+            </div>
+
+            <div>
+                <h3>Restart</h3>
+                <p>Self explanatory.</p>
+            </div>
+        </div>
+
+<!-- Slide 9: The Rant -->
+<div class="slide">   
+   <div class="rant-text">
+    <h2> Claude Wisdom Words</h2>
+       <p>Meta built Quest headsets with zero management tools. None. Not "limited" tools. Not "basic" tools. Zero. In 2025, they expect you to physically put on every single headset to do anything. Install an app on 20 devices? That's 20 times strapping their plastic brick to your face. They literally designed it this way on purpose.</p>
+       
+       <p>Think about how stupid this is. Every phone since 2008 can be managed remotely. Every computer since Windows 95. Hell, my smart toaster has better remote management than Quest. But Meta? "No no, you must wear the device. This is the way." They're either incredibly lazy or actively hostile to developers. Probably both.</p>
+       
+       <p>Their "enterprise" solution is $800 per headset for the exact same garbage experience. No management console. No deployment tools. No nothing. Just a higher price. It's like they're trolling us. "Oh, you want professional tools? Best we can do is charge you more for the same trash."</p>
+       
+       <p>The Quest platform is so locked down, you need to reverse-engineer basic functionality. Want to check battery without wearing it? Hack it. Want to install apps remotely? Hack it. Want to do literally anything useful? Hack it. Meta turned developers into criminals just trying to do their jobs.</p>
+       
+       <p>Here's my favorite part: Meta spent $15 billion on the metaverse while we can't even get a "select all devices" button. For virtual offices nobody uses while real developers suffer with 1990s-level device management. Meta bought Oculus and somehow made it worse.</p>
+       
+       <p>You know what's insane? This company runs infrastructure for 3 billion users but can't figure out how to let me install an APK without wearing a headset. They can serve a billion Instagram stories per second but device management? "Too complex, sorry." The incompetence is so pure, so refined, it's almost beautiful.</p>
+       
+       <p>Managing Quest devices is like Meta asked "How can we waste the maximum amount of human time?" and then built exactly that. Every single task that should take 30 seconds takes 30 minutes. It's not a bug, it's their entire philosophy. Maximum friction, minimum functionality.</p>
+       
+       <p>So yeah, Snorlax exists because Meta won't build basic tools that have existed for decades on every other platform. They're too busy making sure your virtual avatar can high-five in their dead metaverse to care about actual functionality. Classic Meta - solving problems nobody has while ignoring the ones all dev does.</p>
+   </div>
+</div>
+        <!-- Controls -->
+        <div class="controls">
+            <button id="prevBtn" onclick="changeSlide(-1)">← Previous</button>
+            <div class="slide-info">
+                <span id="slideNumber">1</span> / <span id="totalSlides">9</span>
+            </div>
+            <button id="nextBtn" onclick="changeSlide(1)">Next →</button>
+        </div>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+
+        document.getElementById('totalSlides').textContent = totalSlides;
+
+        function showSlide(n) {
+            slides.forEach(slide => slide.classList.remove('active'));
+
+            if (n >= totalSlides) currentSlide = totalSlides - 1;
+            if (n < 0) currentSlide = 0;
+
+            slides[currentSlide].classList.add('active');
+            document.getElementById('slideNumber').textContent = currentSlide + 1;
+
+            // Update button states
+            document.getElementById('prevBtn').disabled = currentSlide === 0;
+            document.getElementById('nextBtn').disabled = currentSlide === totalSlides - 1;
+
+            // Scroll to top when changing slides
+            document.querySelector('.slide.active').scrollTop = 0;
+        }
+
+        function changeSlide(direction) {
+            currentSlide += direction;
+            showSlide(currentSlide);
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') changeSlide(-1);
+            if (e.key === 'ArrowRight') changeSlide(1);
+            if (e.key === 'Home') { currentSlide = 0; showSlide(0); }
+            if (e.key === 'End') { currentSlide = totalSlides - 1; showSlide(totalSlides - 1); }
+        });
+
+        // Initialize
+        showSlide(0);
+    </script>
+</body>
+
+</html>
