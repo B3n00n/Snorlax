@@ -2,6 +2,7 @@ import dearpygui.dearpygui as dpg
 import os
 import shutil
 from typing import Optional
+import sys
 
 from core.server import QuestControlServer
 from utils.logger import logger
@@ -102,31 +103,80 @@ class APKManagerDialog:
         self._remove_file(filename)
     
     def _show_file_selector(self):
-        file_dialog_tag = dpg.generate_uuid()
+        try:
+            default_path = os.path.expanduser("~")
+            
+            file_dialog_tag = dpg.generate_uuid()
+            
+            with dpg.file_dialog(
+                directory_selector=False,
+                show=True,
+                callback=self._on_file_selected,
+                tag=file_dialog_tag,
+                width=700,
+                height=400,
+                modal=True,
+                default_path=default_path
+            ):
+                dpg.add_file_extension(".*", color=(255, 255, 255, 255))
+                dpg.add_file_extension(".apk", color=(0, 255, 0, 255), custom_text="[APK]")
+                
+        except Exception as e:
+            logger.error(f"Error showing file dialog: {e}")
+            self._show_manual_input_dialog()
+    
+    def _show_manual_input_dialog(self):
+        dialog_tag = dpg.generate_uuid()
+        input_tag = dpg.generate_uuid()
         
-        with dpg.file_dialog(
-            directory_selector=False,
+        def browse_and_add():
+            file_path = dpg.get_value(input_tag).strip()
+            if file_path and os.path.exists(file_path) and file_path.lower().endswith('.apk'):
+                self._copy_apk_to_server(file_path)
+                self._refresh_list()
+                dpg.delete_item(dialog_tag)
+            else:
+                logger.error("Invalid file path or not an APK file")
+        
+        with dpg.window(
+            label="Add APK File",
+            modal=True,
             show=True,
-            callback=self._on_file_selected,
-            tag=file_dialog_tag,
-            width=700,
-            height=400,
-            modal=True
+            tag=dialog_tag,
+            width=600,
+            height=200,
+            pos=[dpg.get_viewport_width() // 2 - 300, dpg.get_viewport_height() // 2 - 100]
         ):
-            dpg.add_file_extension(".*", color=(255, 255, 255, 255))
-            dpg.add_file_extension(".apk", color=(0, 255, 0, 255), custom_text="[APK]")
+            dpg.add_text("Enter full path to APK file:")
+            dpg.add_input_text(
+                tag=input_tag,
+                hint="C:\\Users\\Combatica\\Downloads\\app.apk",
+                width=-1
+            )
+            dpg.add_spacer(height=10)
+            
+            with dpg.group(horizontal=True):
+                dpg.add_button(label="Add", callback=browse_and_add, width=100)
+                dpg.add_button(
+                    label="Cancel",
+                    callback=lambda: dpg.delete_item(dialog_tag),
+                    width=100
+                )
     
     def _on_file_selected(self, sender, app_data):
-        selections = app_data["selections"]
-        if selections:
-            for file_name, file_path in selections.items():
-                if file_path.lower().endswith('.apk'):
-                    self._copy_apk_to_server(file_path)
-                else:
-                    logger.warning(f"Skipped non-APK file: {file_name}")
-        
-        dpg.delete_item(sender)
-        self._refresh_list()
+        try:
+            selections = app_data.get("selections", {})
+            if selections:
+                for file_name, file_path in selections.items():
+                    if file_path.lower().endswith('.apk'):
+                        self._copy_apk_to_server(file_path)
+                    else:
+                        logger.warning(f"Skipped non-APK file: {file_name}")
+            
+            dpg.delete_item(sender)
+            self._refresh_list()
+        except Exception as e:
+            logger.error(f"Error processing file selection: {e}")
     
     def _copy_apk_to_server(self, source_path: str):
         try:
@@ -183,7 +233,12 @@ class APKManagerDialog:
         if apk_dir is None:
             apk_dir = 'apks'
         
-        apk_dir = os.path.abspath(apk_dir)
+        if getattr(sys, 'frozen', False):
+            base_path = os.path.dirname(sys.executable)
+        else:
+            base_path = os.path.abspath('.')
+            
+        apk_dir = os.path.join(base_path, apk_dir)
         
         os.makedirs(apk_dir, exist_ok=True)
         
@@ -195,4 +250,4 @@ class APKManagerDialog:
             else:
                 subprocess.Popen(["xdg-open", apk_dir])
         except Exception as e:
-            pass 
+            logger.error(f"Error opening folder: {e}")
