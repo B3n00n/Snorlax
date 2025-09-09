@@ -1,6 +1,8 @@
 import dearpygui.dearpygui as dpg
 import threading
 import time
+import sys
+import os
 
 from config.settings import Config
 from core.server import QuestControlServer
@@ -8,6 +10,15 @@ from core.models import MessageType
 from gui.windows.main_window import MainWindow
 from gui.themes.dark_theme import apply_dark_theme
 from utils.event_bus import event_bus, EventType
+
+
+def resource_path(relative_path):
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    
+    return os.path.join(base_path, relative_path)
 
 
 class QuestControlGUI:
@@ -31,7 +42,9 @@ class QuestControlGUI:
         if self.config.USE_DARK_THEME:
             apply_dark_theme()
         
-        dpg.set_viewport_small_icon("assets/favicon.ico")
+        favicon_path = resource_path("assets/favicon.ico")
+        if os.path.exists(favicon_path):
+            dpg.set_viewport_small_icon(favicon_path)
 
         self.server = QuestControlServer(
             host=self.config.DEFAULT_HOST,
