@@ -204,12 +204,15 @@ class APKManagerDialog:
             if filename is None:
                 logger.error("Filename is None!")
                 return
-                
-            apk_dir = 'apks'
             
             if hasattr(self.server, 'apk_server') and hasattr(self.server.apk_server, 'apk_directory'):
-                if self.server.apk_server.apk_directory:
-                    apk_dir = self.server.apk_server.apk_directory
+                apk_dir = self.server.apk_server.apk_directory
+            else:
+                if getattr(sys, 'frozen', False):
+                    base_path = os.path.dirname(sys.executable)
+                else:
+                    base_path = os.path.abspath('.')
+                apk_dir = os.path.join(base_path, 'apks')
                 
             file_path = os.path.join(apk_dir, filename)
             
