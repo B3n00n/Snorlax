@@ -6,13 +6,13 @@ Remote control and management tools for Meta Quest headsets. Three tools, one go
 
 This repo contains three interconnected projects:
 
-### 🎮 [Snorlax](./client/)
+### [Snorlax](./client/)
 The Android app that runs on your Quest. Turns your headset into a remotely controllable device. Install APKs, check battery, launch apps - without putting the headset on your face.
 
-### 🖥️ [SnorlaxServer](./server/)
+### [SnorlaxServer](./server/)
 Desktop GUI server that talks to Snorlax. Manage multiple Quest devices from one interface. Built with Python and Dear PyGui.
 
-### 🔧 [SnorlaxSetup](./setup/)
+### [SnorlaxSetup](./setup/)
 Windows tool that automates the painful setup process. Handles the ADB commands, device owner setup, and all that crap. One click and you're done.
 
 ## Quick Start
