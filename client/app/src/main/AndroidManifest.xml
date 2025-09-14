@@ -85,6 +85,16 @@
             </intent-filter>
         </receiver>
 
+        <receiver
+            android:name=".receivers.DevStopReceiver"
+            android:enabled="true"
+            android:exported="true"
+            tools:ignore="ExportedReceiver">
+            <intent-filter>
+                <action android:name="com.b3n00n.snorlax.DEV_STOP_SERVICE" />
+            </intent-filter>
+        </receiver>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
