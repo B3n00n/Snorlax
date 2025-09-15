@@ -7,6 +7,7 @@ object MessageType {
     const val BATTERY_STATUS: Byte = 0x03
     const val COMMAND_RESPONSE: Byte = 0x04
     const val ERROR: Byte = 0x05
+    const val VOLUME_STATUS: Byte = 0x06
 
     // Server to Client
     const val LAUNCH_APP: Byte = 0x10
@@ -18,4 +19,6 @@ object MessageType {
     const val DOWNLOAD_AND_INSTALL_APK: Byte = 0x17
     const val SHUTDOWN_DEVICE: Byte = 0x18
     const val UNINSTALL_APP: Byte = 0x19
+    const val SET_VOLUME: Byte = 0x1A
+    const val GET_VOLUME: Byte = 0x1B
 }

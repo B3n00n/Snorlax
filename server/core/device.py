@@ -19,6 +19,7 @@ class QuestDevice:
         self.lock = threading.Lock()
         self._cached_display_name: Optional[str] = None
         self._cached_name_serial: Optional[str] = None
+        self.volume_info: Optional[Dict[str, int]] = None
     
     def send_message(self, message_type: MessageType, data: bytes = b'') -> bool:
         try:
@@ -81,3 +82,11 @@ class QuestDevice:
             self.command_history.append(result)
             if len(self.command_history) > 50:
                 self.command_history = self.command_history[-50:]
+
+    def send_volume_command(self, percentage: int) -> bool:
+        writer = PacketWriter()
+        writer.write_u8(percentage)
+        return self.send_message(MessageType.SET_VOLUME, writer.to_bytes())
+
+    def request_volume_status(self) -> bool:
+        return self.send_message(MessageType.GET_VOLUME)

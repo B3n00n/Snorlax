@@ -137,6 +137,17 @@ class QuestControlServer:
                 device.add_command_result(False, error_message)
                 
                 event_bus.emit(EventType.ERROR_OCCURRED, f"{device.get_display_name()}: {error_message}")
+
+            elif message_type == MessageType.VOLUME_STATUS:
+                volume_percentage = reader.read_u8()
+                current_volume = reader.read_u8()
+                max_volume = reader.read_u8()
+
+                device.volume_info = {
+                    'percentage': volume_percentage,
+                    'current': current_volume,
+                    'max': max_volume
+                }
                 
             elif message_type == MessageType.HEARTBEAT:
                 pass

@@ -82,6 +82,25 @@ class ActionsPanel:
                     width=120
                 )
             
+            dpg.add_spacer(height=10)
+                
+            # Volume Control
+            dpg.add_text("Volume Control")
+            with dpg.group(horizontal=True):
+                self.volume_slider_tag = dpg.add_slider_int(
+                    default_value=50,
+                    min_value=0,
+                    max_value=100,
+                    format="%d%%",
+                    width=200,
+                    callback=self._on_volume_changed
+                )
+                dpg.add_button(
+                    label="Get Volume",
+                    callback=self._get_current_volume,
+                    width=100
+                )
+
             dpg.add_spacer(height=20)
             
             # Command log
@@ -97,7 +116,14 @@ class ActionsPanel:
     
     def _subscribe_events(self):
         event_bus.subscribe(EventType.COMMAND_EXECUTED, self._on_command_executed)
-    
+        event_bus.subscribe(EventType.DEVICE_UPDATED, self._on_device_updated)
+
+    def _on_device_updated(self, device):
+        # Update volume slider if this is one of our selected devices
+        selected_devices = self.device_list.get_selected_devices()
+        if device in selected_devices and device.volume_info:
+            dpg.set_value(self.volume_slider_tag, device.volume_info['percentage'])
+            
     def _on_command_executed(self, data: dict):
         device = data.get('device')
         success = data.get('success')
@@ -570,9 +596,27 @@ class ActionsPanel:
         if not devices:
             return
         
-        # Direct restart without confirmation
         self._log_message(f"Sending {action} command to {len(devices)} devices", "warning")
         
         for device in devices:
             device.send_shutdown_command(action)
             self._log_message(f"Sent {action} command to {device.get_display_name()}", "warning")
+
+    def _on_volume_changed(self, sender, value):
+        devices = self._get_target_devices("volume control")
+        if not devices:
+            return
+    
+        for device in devices:
+            device.send_volume_command(value)
+    
+        self._log_message(f"Setting volume to {value}% on {len(devices)} device(s)", "info")
+
+    def _get_current_volume(self):
+        devices = self._get_target_devices("get volume")
+        if not devices:
+            return
+    
+        device = devices[0]
+        device.request_volume_status()
+        self._log_message(f"Requesting volume status from {device.get_display_name()}", "info")

@@ -10,6 +10,7 @@ class MessageType(IntEnum):
     BATTERY_STATUS = 0x03
     COMMAND_RESPONSE = 0x04
     ERROR = 0x05
+    VOLUME_STATUS = 0x06
     
     LAUNCH_APP = 0x10
     EXECUTE_SHELL = 0x12
@@ -20,6 +21,8 @@ class MessageType(IntEnum):
     DOWNLOAD_AND_INSTALL_APK = 0x17
     SHUTDOWN_DEVICE = 0x18
     UNINSTALL_APP = 0x19
+    SET_VOLUME = 0x1A
+    GET_VOLUME = 0x1B
 
 
 @dataclass

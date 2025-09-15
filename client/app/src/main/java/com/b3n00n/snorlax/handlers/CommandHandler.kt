@@ -33,6 +33,8 @@ class CommandHandler(
         registerHandler(DownloadAndInstallApkHandler(context))
         registerHandler(ShutdownHandler(context))
         registerHandler(UninstallAppHandler(context))
+        registerHandler(VolumeHandler.SetVolumeHandler(context))
+        registerHandler(VolumeHandler.GetVolumeHandler(context))
     }
 
     private fun registerHandler(handler: MessageHandler) {
@@ -94,6 +96,14 @@ class CommandHandler(
             connectionManager.sendData(writer.toByteArray())
         } catch (e: IOException) {
             Log.e(TAG, "Error sending battery status", e)
+        }
+    }
+
+    fun sendData(data: ByteArray) {
+        try {
+            connectionManager.sendData(data)
+        } catch (e: IOException) {
+            Log.e(TAG, "Error sending data", e)
         }
     }
 }
