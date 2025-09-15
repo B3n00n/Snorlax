@@ -1,6 +1,6 @@
 import socket
 import threading
-from typing import Optional
+from typing import Dict, Optional
 from datetime import datetime
 
 from .models import DeviceInfo, BatteryInfo, MessageType, CommandResult
