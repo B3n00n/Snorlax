@@ -15,11 +15,11 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
-import com.b3n00n.snorlax.config.ServerConfigurationManager
+import com.b3n00n.snorlax.config.ConfigurationManager
 import com.b3n00n.snorlax.services.RemoteClientService
 
-class ServerConfigurationActivity : ComponentActivity() {
-    private lateinit var configManager: ServerConfigurationManager
+class ConfigurationActivity : ComponentActivity() {
+    private lateinit var configManager: ConfigurationManager
     private lateinit var ipEditText: EditText
     private lateinit var portEditText: EditText
 
@@ -32,7 +32,7 @@ class ServerConfigurationActivity : ComponentActivity() {
                     WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
         )
 
-        configManager = ServerConfigurationManager(this)
+        configManager = ConfigurationManager(this)
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
@@ -92,14 +92,14 @@ class ServerConfigurationActivity : ComponentActivity() {
         return LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
 
-            addView(TextView(this@ServerConfigurationActivity).apply {
+            addView(TextView(this@ConfigurationActivity).apply {
                 text = "Server IP Address:"
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 24f)
                 setTextColor(Color.WHITE)
                 setPadding(0, 0, 0, 16)
             })
 
-            ipEditText = EditText(this@ServerConfigurationActivity).apply {
+            ipEditText = EditText(this@ConfigurationActivity).apply {
                 setText(configManager.getServerIp())
                 hint = "192.168.1.100"
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 28f)
@@ -118,14 +118,14 @@ class ServerConfigurationActivity : ComponentActivity() {
         return LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
 
-            addView(TextView(this@ServerConfigurationActivity).apply {
+            addView(TextView(this@ConfigurationActivity).apply {
                 text = "Server Port:"
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 24f)
                 setTextColor(Color.WHITE)
                 setPadding(0, 60, 0, 16)
             })
 
-            portEditText = EditText(this@ServerConfigurationActivity).apply {
+            portEditText = EditText(this@ConfigurationActivity).apply {
                 setText(configManager.getServerPort().toString())
                 hint = "e.g., 8888"
                 inputType = InputType.TYPE_CLASS_NUMBER

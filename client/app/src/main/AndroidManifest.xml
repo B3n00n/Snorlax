@@ -19,12 +19,15 @@
     <uses-permission android:name="android.permission.REBOOT"
         tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+<<<<<<< HEAD
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
     <uses-permission android:name="android.permission.WRITE_SETTINGS"
         tools:ignore="ProtectedPermissions" />
+=======
+>>>>>>> parent of 327321a (temp wifi)
 
     <application
         android:allowBackup="true"
@@ -50,7 +53,7 @@
         </activity>
 
         <activity
-            android:name=".activities.ServerConfigurationActivity"
+            android:name=".activities.ConfigurationActivity"
             android:exported="true"
             android:label="Snorlax Config"
             android:launchMode="singleTask"
@@ -61,14 +64,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-        <activity
-            android:name=".activities.WifiConfigurationActivity"
-            android:exported="false"
-            android:label="WiFi Configuration"
-            android:launchMode="singleTask"
-            android:taskAffinity=""
-            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
 
         <service
             android:name=".services.RemoteClientService"
