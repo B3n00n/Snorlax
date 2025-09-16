@@ -198,7 +198,7 @@ class DownloadAndInstallApkHandler(private val context: Context) : MessageHandle
         }
     }
 
-    private suspend fun checkInstallationStatus(packageName: String, commandHandler: CommandHandler) {
+    private fun checkInstallationStatus(packageName: String, commandHandler: CommandHandler) {
         try {
             val isInstalled = isPackageInstalled(packageName)
 

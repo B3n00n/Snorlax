@@ -15,18 +15,13 @@ class DeviceInfo(private val context: Context? = null) {
     @SuppressLint("HardwareIds")
     private fun getDeviceSerial(): String {
         return try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                // Use Android ID for Android 10+
-                context?.let { ctx ->
-                    Settings.Secure.getString(
-                        ctx.contentResolver,
-                        Settings.Secure.ANDROID_ID
-                    )
-                } ?: "Unknown"
-            } else {
-                @Suppress("DEPRECATION")
-                Build.SERIAL.takeIf { it != "unknown" } ?: "Unknown"
-            }
+            // Android 10+ uses Android ID
+            context?.let { ctx ->
+                Settings.Secure.getString(
+                    ctx.contentResolver,
+                    Settings.Secure.ANDROID_ID
+                )
+            } ?: "Unknown"
         } catch (e: Exception) {
             "Unknown"
         }

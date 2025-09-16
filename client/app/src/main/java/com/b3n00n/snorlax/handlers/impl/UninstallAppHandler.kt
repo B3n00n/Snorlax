@@ -64,21 +64,12 @@ class UninstallAppHandler(private val context: Context) : MessageHandler {
                 putExtra("package_name", packageName)
             }
 
-            val pendingIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                android.app.PendingIntent.getBroadcast(
-                    context,
-                    packageName.hashCode(),
-                    intent,
-                    android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_MUTABLE
-                )
-            } else {
-                android.app.PendingIntent.getBroadcast(
-                    context,
-                    packageName.hashCode(),
-                    intent,
-                    android.app.PendingIntent.FLAG_UPDATE_CURRENT
-                )
-            }
+            val pendingIntent = android.app.PendingIntent.getBroadcast(
+                context,
+                packageName.hashCode(),
+                intent,
+                android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_MUTABLE
+            )
 
             // Uninstall the package
             packageInstaller.uninstall(packageName, pendingIntent.intentSender)

@@ -35,25 +35,13 @@ class ShutdownHandler(private val context: Context) : MessageHandler {
             when (action) {
                 "shutdown" -> {
                     commandHandler.sendResponse(true, "Shutting down device...")
-                    Thread.sleep(1000) // Give time for response to send
-
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                        devicePolicyManager.reboot(adminComponent)
-                    } else {
-                        // For older versions, use shell command
-                        Runtime.getRuntime().exec(arrayOf("su", "-c", "reboot -p"))
-                    }
+                    Thread.sleep(1000)
+                    devicePolicyManager.reboot(adminComponent)
                 }
                 "restart" -> {
                     commandHandler.sendResponse(true, "Restarting device...")
-                    Thread.sleep(1000) // Give time for response to send
-
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                        devicePolicyManager.reboot(adminComponent)
-                    } else {
-                        // For older versions, use shell command
-                        Runtime.getRuntime().exec(arrayOf("su", "-c", "reboot"))
-                    }
+                    Thread.sleep(1000)
+                    devicePolicyManager.reboot(adminComponent)
                 }
                 else -> {
                     commandHandler.sendResponse(false, "Unknown action: $action. Use 'shutdown' or 'restart'")

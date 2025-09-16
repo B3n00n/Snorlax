@@ -21,19 +21,13 @@ class GetInstalledAppsHandler(private val context: Context) : MessageHandler {
         Log.d(TAG, "Getting installed apps")
 
         try {
-            val appList = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                val mainIntent = Intent(Intent.ACTION_MAIN, null).apply {
-                    addCategory(Intent.CATEGORY_LAUNCHER)
-                }
-
-                context.packageManager
-                    .queryIntentActivities(mainIntent, 0)
-                    .joinToString(",") { it.activityInfo.packageName }
-            } else {
-                context.packageManager
-                    .getInstalledPackages(0)
-                    .joinToString(",") { it.packageName }
+            val mainIntent = Intent(Intent.ACTION_MAIN, null).apply {
+                addCategory(Intent.CATEGORY_LAUNCHER)
             }
+
+            val appList = context.packageManager
+                .queryIntentActivities(mainIntent, 0)
+                .joinToString(",") { it.activityInfo.packageName }
 
             commandHandler.sendResponse(true, appList)
         } catch (e: Exception) {
