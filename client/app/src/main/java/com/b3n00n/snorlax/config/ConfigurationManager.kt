@@ -4,9 +4,9 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
 
-class ServerConfigurationManager(private val context: Context) {
+class ConfigurationManager(private val context: Context) {
     companion object {
-        private const val TAG = "ServerConfigurationManager"
+        private const val TAG = "ConfigurationManager"
         private const val PREFS_NAME = "snorlax_config"
         private const val KEY_SERVER_IP = "server_ip"
         private const val KEY_SERVER_PORT = "server_port"
