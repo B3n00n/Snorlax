@@ -44,7 +44,7 @@
         </activity>
 
         <activity
-            android:name=".activities.ConfigurationActivity"
+            android:name=".activities.ServerConfigurationActivity"
             android:exported="true"
             android:label="Snorlax Config"
             android:launchMode="singleTask"

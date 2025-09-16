@@ -15,8 +15,8 @@ import android.os.Handler
 import android.os.Looper
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import com.b3n00n.snorlax.activities.ConfigurationActivity
-import com.b3n00n.snorlax.config.ConfigurationManager
+import com.b3n00n.snorlax.activities.ServerConfigurationActivity
+import com.b3n00n.snorlax.config.ServerConfigurationManager
 import com.b3n00n.snorlax.handlers.CommandHandler
 import com.b3n00n.snorlax.models.DeviceInfo
 import com.b3n00n.snorlax.network.ConnectionManager
@@ -36,7 +36,7 @@ class RemoteClientService : Service(), ConnectionManager.ConnectionListener {
     private var networkClient: NetworkClient? = null
     private var commandHandler: CommandHandler? = null
     private var isServiceRunning = false
-    private lateinit var configManager: ConfigurationManager
+    private lateinit var configManager: ServerConfigurationManager
 
     private var heartbeatHandler: Handler? = null
     private var heartbeatRunnable: Runnable? = null
@@ -47,7 +47,7 @@ class RemoteClientService : Service(), ConnectionManager.ConnectionListener {
         Log.d(TAG, "Service created")
 
         createNotificationChannel()
-        configManager = ConfigurationManager(this)
+        configManager = ServerConfigurationManager(this)
 
         startForeground(NOTIFICATION_ID, createForegroundNotification())
 
@@ -81,7 +81,7 @@ class RemoteClientService : Service(), ConnectionManager.ConnectionListener {
 
     private fun launchConfigurationActivity() {
         try {
-            val intent = Intent(this, ConfigurationActivity::class.java).apply {
+            val intent = Intent(this, ServerConfigurationActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                         Intent.FLAG_ACTIVITY_CLEAR_TOP or
                         Intent.FLAG_ACTIVITY_SINGLE_TOP
