@@ -8,13 +8,6 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
-<<<<<<< HEAD
-import android.net.ConnectivityManager
-import android.net.Network
-import android.net.NetworkCapabilities
-import android.net.NetworkRequest
-=======
->>>>>>> parent of 327321a (temp wifi)
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
