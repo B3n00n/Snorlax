@@ -62,7 +62,7 @@ class ServerConfigurationActivity : ComponentActivity() {
     private fun createContentLayout(): LinearLayout {
         return LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(60, 60, 60, 60) // Reduced padding for small window
+            setPadding(60, 60, 60, 60)
             setBackgroundColor(bgColor)
             gravity = Gravity.CENTER_HORIZONTAL
 
@@ -77,7 +77,7 @@ class ServerConfigurationActivity : ComponentActivity() {
     private fun createTitleText(): TextView {
         return TextView(this).apply {
             text = "Snorlax Config"
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 32f) // Smaller for Oculus
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 32f)
             setTextColor(accentColor)
             setPadding(0, 0, 0, 30)
             gravity = Gravity.CENTER
