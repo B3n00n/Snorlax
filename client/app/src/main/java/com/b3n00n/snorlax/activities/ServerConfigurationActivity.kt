@@ -2,6 +2,7 @@ package com.b3n00n.snorlax.activities
 
 import android.content.Intent
 import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.text.InputType
 import android.util.TypedValue
@@ -23,6 +24,13 @@ class ServerConfigurationActivity : ComponentActivity() {
     private lateinit var ipEditText: EditText
     private lateinit var portEditText: EditText
 
+    private val bgColor = Color.parseColor("#0D0D0D")
+    private val surfaceColor = Color.parseColor("#1A1A1A")
+    private val accentColor = Color.parseColor("#4FC3F7")
+    private val accentLight = Color.parseColor("#81D4FA")
+    private val textPrimary = Color.parseColor("#EDEDED")
+    private val textSecondary = Color.parseColor("#9E9E9E")
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -41,13 +49,12 @@ class ServerConfigurationActivity : ComponentActivity() {
         })
 
         setContentView(createMainLayout())
-
-        window.decorView.setBackgroundColor(Color.BLACK)
+        window.decorView.setBackgroundColor(bgColor)
     }
 
     private fun createMainLayout(): ScrollView {
         return ScrollView(this).apply {
-            setBackgroundColor(Color.BLACK)
+            setBackgroundColor(bgColor)
             addView(createContentLayout())
         }
     }
@@ -55,126 +62,156 @@ class ServerConfigurationActivity : ComponentActivity() {
     private fun createContentLayout(): LinearLayout {
         return LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(80, 80, 80, 80)
-            setBackgroundColor(Color.BLACK)
+            setPadding(60, 60, 60, 60) // Reduced padding for small window
+            setBackgroundColor(bgColor)
             gravity = Gravity.CENTER_HORIZONTAL
 
             addView(createTitleText())
-            addView(createCurrentConfigText())
-            addView(createIpSection())
-            addView(createPortSection())
-            addView(createButtonLayout())
+            addView(createCurrentConfigCard())
+            addView(createInputCard())
+            addView(createSaveButton())
             addView(createFooterText())
         }
     }
 
     private fun createTitleText(): TextView {
         return TextView(this).apply {
-            text = "Snorlax Configuration"
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 36f)
-            setTextColor(Color.WHITE)
-            setPadding(0, 0, 0, 60)
+            text = "Snorlax Config"
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 32f) // Smaller for Oculus
+            setTextColor(accentColor)
+            setPadding(0, 0, 0, 30)
             gravity = Gravity.CENTER
+            typeface = android.graphics.Typeface.DEFAULT_BOLD
         }
     }
 
-    private fun createCurrentConfigText(): TextView {
-        return TextView(this).apply {
-            text = "Current Server: ${configManager.getServerIp()}:${configManager.getServerPort()}"
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 24f)
-            setTextColor(Color.CYAN)
-            setPadding(0, 0, 0, 60)
-            gravity = Gravity.CENTER
-        }
-    }
-
-    private fun createIpSection(): LinearLayout {
+    private fun createCurrentConfigCard(): LinearLayout {
         return LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
+            background = GradientDrawable().apply {
+                setColor(surfaceColor)
+                cornerRadius = 20f
+            }
+            setPadding(40, 30, 40, 30)
 
             addView(TextView(this@ServerConfigurationActivity).apply {
-                text = "Server IP Address:"
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 24f)
-                setTextColor(Color.WHITE)
-                setPadding(0, 0, 0, 16)
+                text = "Current Server"
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+                setTextColor(textSecondary)
+                gravity = Gravity.CENTER
+            })
+
+            addView(TextView(this@ServerConfigurationActivity).apply {
+                text = "${configManager.getServerIp()}:${configManager.getServerPort()}"
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 20f)
+                setTextColor(accentLight)
+                gravity = Gravity.CENTER
+                setPadding(0, 8, 0, 0)
+            })
+        }
+    }
+
+    private fun createInputCard(): LinearLayout {
+        return LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            background = GradientDrawable().apply {
+                setColor(surfaceColor)
+                cornerRadius = 20f
+            }
+            setPadding(40, 40, 40, 40)
+
+            val params = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            params.topMargin = 40
+            layoutParams = params
+
+            // IP Input
+            addView(TextView(this@ServerConfigurationActivity).apply {
+                text = "IP ADDRESS"
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+                setTextColor(accentColor)
+                setPadding(10, 0, 0, 10)
+                letterSpacing = 0.1f
             })
 
             ipEditText = EditText(this@ServerConfigurationActivity).apply {
                 setText(configManager.getServerIp())
                 hint = "192.168.1.100"
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 28f)
-                setTextColor(Color.WHITE)
-                setHintTextColor(Color.GRAY)
-                setBackgroundColor(Color.DKGRAY)
-                setPadding(40, 40, 40, 40)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 22f)
+                setTextColor(textPrimary)
+                setHintTextColor(Color.parseColor("#666666"))
                 inputType = InputType.TYPE_CLASS_TEXT
                 gravity = Gravity.CENTER
+
+                background = GradientDrawable().apply {
+                    setColor(bgColor)
+                    cornerRadius = 15f
+                }
+                setPadding(30, 30, 30, 30)
             }
             addView(ipEditText)
-        }
-    }
 
-    private fun createPortSection(): LinearLayout {
-        return LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-
+            // Port Input
             addView(TextView(this@ServerConfigurationActivity).apply {
-                text = "Server Port:"
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 24f)
-                setTextColor(Color.WHITE)
-                setPadding(0, 60, 0, 16)
+                text = "PORT"
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+                setTextColor(accentColor)
+                setPadding(10, 40, 0, 10)
+                letterSpacing = 0.1f
             })
 
             portEditText = EditText(this@ServerConfigurationActivity).apply {
                 setText(configManager.getServerPort().toString())
-                hint = "e.g., 8888"
+                hint = "8888"
                 inputType = InputType.TYPE_CLASS_NUMBER
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 28f)
-                setTextColor(Color.WHITE)
-                setHintTextColor(Color.GRAY)
-                setBackgroundColor(Color.DKGRAY)
-                setPadding(40, 40, 40, 40)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 22f)
+                setTextColor(textPrimary)
+                setHintTextColor(Color.parseColor("#666666"))
                 gravity = Gravity.CENTER
+
+                background = GradientDrawable().apply {
+                    setColor(bgColor)
+                    cornerRadius = 15f
+                }
+                setPadding(30, 30, 30, 30)
             }
             addView(portEditText)
         }
     }
 
-    private fun createButtonLayout(): LinearLayout {
-        return LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            setPadding(0, 80, 0, 0)
-            gravity = Gravity.CENTER
-
-            addView(createSaveButton())
-            addView(createSpacer())
-        }
-    }
-
     private fun createSaveButton(): Button {
         return Button(this).apply {
-            text = "Save & Apply"
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 24f)
+            text = "SAVE & RESTART"
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
+            setTextColor(bgColor)
             setPadding(60, 40, 60, 40)
-            setBackgroundColor(Color.parseColor("#4CAF50"))
-            setTextColor(Color.WHITE)
-            setOnClickListener { saveConfiguration() }
-        }
-    }
+            letterSpacing = 0.1f
 
-    private fun createSpacer(): TextView {
-        return TextView(this).apply {
-            text = "    "
+            background = GradientDrawable().apply {
+                setColor(accentColor)
+                cornerRadius = 30f
+            }
+
+            val params = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            params.topMargin = 50
+            layoutParams = params
+
+            setOnClickListener { saveConfiguration() }
         }
     }
 
     private fun createFooterText(): TextView {
         return TextView(this).apply {
             text = "\nMade by B3n00n\n Combatica LTD"
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
-            setTextColor(Color.GRAY)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+            setTextColor(Color.parseColor("#555555"))
             gravity = Gravity.CENTER
-            setPadding(0, 60, 0, 0)
+            setPadding(0, 40, 0, 0)
         }
     }
 
@@ -187,7 +224,7 @@ class ServerConfigurationActivity : ComponentActivity() {
 
             Toast.makeText(
                 this,
-                "Configuration saved!",
+                "Configuration saved",
                 Toast.LENGTH_SHORT
             ).show()
 
