@@ -8,6 +8,8 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.graphics.BitmapFactory
+import android.graphics.Color
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
@@ -15,6 +17,7 @@ import android.os.Handler
 import android.os.Looper
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import com.b3n00n.snorlax.R
 import com.b3n00n.snorlax.activities.ServerConfigurationActivity
 import com.b3n00n.snorlax.config.ServerConfigurationManager
 import com.b3n00n.snorlax.config.SnorlaxConfigManager
@@ -131,7 +134,7 @@ class RemoteClientService : Service(), ConnectionManager.ConnectionListener {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(SnorlaxConfigManager.APP_NAME)
             .setContentText("Server: $serverInfo | Version: ${SnorlaxConfigManager.APP_VERSION}")
-            .setSmallIcon(android.R.drawable.ic_menu_mylocation)
+            .setLargeIcon(BitmapFactory.decodeResource(resources, R.drawable.ic_notification))
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)
             .addAction(
