@@ -56,7 +56,6 @@ class InstallLocalApkHandler(private val context: Context) : MessageHandler {
                 readTimeout = READ_TIMEOUT
                 instanceFollowRedirects = true
                 setRequestProperty("User-Agent", "Snorlax Local APK Installer")
-                // Don't use cache for local downloads
                 useCaches = false
                 defaultUseCaches = false
             }

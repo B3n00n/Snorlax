@@ -6,6 +6,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.database.Cursor
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
@@ -18,10 +20,13 @@ import com.b3n00n.snorlax.protocol.PacketReader
 import com.b3n00n.snorlax.utils.QuestApkInstaller
 import kotlinx.coroutines.*
 import java.io.File
+import java.net.HttpURLConnection
+import java.net.URL
 
 class DownloadAndInstallApkHandler(private val context: Context) : MessageHandler {
     companion object {
         private const val TAG = "DownloadAndInstallApkHandler"
+        private const val INTERNET_CHECK_TIMEOUT = 5000
     }
 
     override val messageType: Byte = MessageType.DOWNLOAD_AND_INSTALL_APK
@@ -32,11 +37,43 @@ class DownloadAndInstallApkHandler(private val context: Context) : MessageHandle
         val apkUrl = reader.readString()
         Log.d(TAG, "Downloading and installing APK from: $apkUrl")
 
+        downloadScope.launch {
+            val hasInternet = checkInternetConnection()
+            withContext(Dispatchers.Main) {
+                if (!hasInternet) {
+                    commandHandler.sendResponse(
+                        false,
+                        "No internet connection available. Cannot download from: $apkUrl"
+                    )
+                    Log.e(TAG, "Download failed: No internet connection")
+                } else {
+                    try {
+                        downloadAndInstallApk(apkUrl, commandHandler)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error downloading/installing APK", e)
+                        commandHandler.sendResponse(false, "Error: ${e.message}")
+                    }
+                }
+            }
+        }
+    }
+
+    private suspend fun checkInternetConnection(): Boolean = withContext(Dispatchers.IO) {
         try {
-            downloadAndInstallApk(apkUrl, commandHandler)
+            val url = URL("https://www.google.com")
+            val connection = url.openConnection() as HttpURLConnection
+            connection.apply {
+                connectTimeout = INTERNET_CHECK_TIMEOUT
+                readTimeout = INTERNET_CHECK_TIMEOUT
+                requestMethod = "HEAD"
+            }
+            connection.connect()
+            val responseCode = connection.responseCode
+            connection.disconnect()
+            responseCode in 200..299
         } catch (e: Exception) {
-            Log.e(TAG, "Error downloading/installing APK", e)
-            commandHandler.sendResponse(false, "Error: ${e.message}")
+            Log.e(TAG, "Internet check failed: ${e.message}")
+            false
         }
     }
 
@@ -136,8 +173,22 @@ class DownloadAndInstallApkHandler(private val context: Context) : MessageHandle
                             downloading = false
                             val reasonIndex = it.getColumnIndex(DownloadManager.COLUMN_REASON)
                             val reason = it.getInt(reasonIndex)
-                            Log.e(TAG, "Download failed with reason: $reason")
-                            commandHandler.sendResponse(false, "Download failed. Reason: $reason")
+
+                            val errorMessage = when (reason) {
+                                DownloadManager.ERROR_CANNOT_RESUME -> "Download cannot resume"
+                                DownloadManager.ERROR_DEVICE_NOT_FOUND -> "Storage device not found"
+                                DownloadManager.ERROR_FILE_ALREADY_EXISTS -> "File already exists"
+                                DownloadManager.ERROR_FILE_ERROR -> "File storage error"
+                                DownloadManager.ERROR_HTTP_DATA_ERROR -> "HTTP data error"
+                                DownloadManager.ERROR_INSUFFICIENT_SPACE -> "Insufficient storage space"
+                                DownloadManager.ERROR_TOO_MANY_REDIRECTS -> "Too many redirects"
+                                DownloadManager.ERROR_UNHANDLED_HTTP_CODE -> "Unhandled HTTP code"
+                                DownloadManager.ERROR_UNKNOWN -> "Unknown error"
+                                else -> "Download failed with code: $reason"
+                            }
+
+                            Log.e(TAG, "Download failed: $errorMessage")
+                            commandHandler.sendResponse(false, "Download failed: $errorMessage")
                         }
 
                         DownloadManager.STATUS_RUNNING -> {
@@ -154,6 +205,21 @@ class DownloadAndInstallApkHandler(private val context: Context) : MessageHandle
                                     Log.d(TAG, "Download progress: $progress%")
                                 }
                             }
+                        }
+
+                        DownloadManager.STATUS_PAUSED -> {
+                            val reasonIndex = it.getColumnIndex(DownloadManager.COLUMN_REASON)
+                            val reason = it.getInt(reasonIndex)
+
+                            val pauseReason = when (reason) {
+                                DownloadManager.PAUSED_QUEUED_FOR_WIFI -> "Waiting for WiFi"
+                                DownloadManager.PAUSED_UNKNOWN -> "Paused for unknown reason"
+                                DownloadManager.PAUSED_WAITING_FOR_NETWORK -> "Waiting for network"
+                                DownloadManager.PAUSED_WAITING_TO_RETRY -> "Waiting to retry"
+                                else -> "Paused with code: $reason"
+                            }
+
+                            Log.d(TAG, "Download paused: $pauseReason")
                         }
                     }
                 }
