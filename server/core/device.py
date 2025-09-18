@@ -90,3 +90,8 @@ class QuestDevice:
 
     def request_volume_status(self) -> bool:
         return self.send_message(MessageType.GET_VOLUME)
+    
+    def send_install_local_apk_command(self, local_url: str) -> bool:
+        writer = PacketWriter()
+        writer.write_string(local_url)
+        return self.send_message(MessageType.INSTALL_LOCAL_APK, writer.to_bytes())

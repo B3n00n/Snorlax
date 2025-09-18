@@ -23,6 +23,7 @@ class MessageType(IntEnum):
     UNINSTALL_APP = 0x19
     SET_VOLUME = 0x1A
     GET_VOLUME = 0x1B
+    INSTALL_LOCAL_APK = 0x1C
 
 
 @dataclass

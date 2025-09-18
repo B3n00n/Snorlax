@@ -35,6 +35,7 @@ class CommandHandler(
         registerHandler(UninstallAppHandler(context))
         registerHandler(VolumeHandler.SetVolumeHandler(context))
         registerHandler(VolumeHandler.GetVolumeHandler(context))
+        registerHandler(InstallLocalApkHandler(context))
     }
 
     private fun registerHandler(handler: MessageHandler) {

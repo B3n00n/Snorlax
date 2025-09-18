@@ -21,4 +21,5 @@ object MessageType {
     const val UNINSTALL_APP: Byte = 0x19
     const val SET_VOLUME: Byte = 0x1A
     const val GET_VOLUME: Byte = 0x1B
+    const val INSTALL_LOCAL_APK: Byte = 0x1C
 }

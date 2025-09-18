@@ -549,7 +549,7 @@ class ActionsPanel:
                 apk_url = self.server.apk_server.get_apk_url(selected_apk)
                 
                 for device in devices:
-                    device.send_command(MessageType.DOWNLOAD_AND_INSTALL_APK, apk_url)
+                    device.send_install_local_apk_command(apk_url)
                     self._log_message(
                         f"Installing {selected_apk} on {device.get_display_name()}", 
                         "info"

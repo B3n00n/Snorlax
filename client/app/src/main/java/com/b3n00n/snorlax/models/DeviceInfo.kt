@@ -15,7 +15,6 @@ class DeviceInfo(private val context: Context? = null) {
     @SuppressLint("HardwareIds")
     private fun getDeviceSerial(): String {
         return try {
-            // Android 10+ uses Android ID
             context?.let { ctx ->
                 Settings.Secure.getString(
                     ctx.contentResolver,
