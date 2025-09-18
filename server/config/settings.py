@@ -1,4 +1,7 @@
 class Config:
+    APP_NAME = "Combatica Quest Control Center"
+    APP_VERSION = "1.0.5"
+
     DEFAULT_HOST = "0.0.0.0"
     DEFAULT_PORT = 8888
     

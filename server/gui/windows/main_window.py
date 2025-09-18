@@ -7,7 +7,7 @@ from .device_details import DeviceDetailsPanel
 from .actions_panel import ActionsPanel
 from .dev_actions_panel import DevActionsPanel
 from utils.event_bus import event_bus, EventType
-
+from config.settings import Config
 
 class MainWindow:
     def __init__(self, server: QuestControlServer):
@@ -22,7 +22,7 @@ class MainWindow:
         self._subscribe_events()
     
     def _setup_ui(self):
-        with dpg.window(tag="main_window", label="Combatica Quest Control Center", no_close=True):
+        with dpg.window(tag="main_window", label=f"{Config.APP_NAME} v{Config.APP_VERSION}", no_close=True):
             # Menu bar
             with dpg.menu_bar():
                 with dpg.menu(label="File"):
@@ -42,6 +42,8 @@ class MainWindow:
                 
                 with dpg.menu(label="Dev"):
                     dpg.add_menu_item(label="Toggle Developer Mode", callback=self._toggle_dev_mode)
+                with dpg.menu(label="Help"):
+                    dpg.add_menu_item(label="About", callback=self._show_about)
             
             self.status_tag = dpg.add_text("Server: Stopped", color=(200, 200, 200))
             dpg.add_separator()
@@ -195,3 +197,31 @@ class MainWindow:
         from gui.dialogs.apk_manager_dialog import APKManagerDialog
         dialog = APKManagerDialog(self.server)
         dialog.show()
+
+    def _show_about(self):
+        dialog_tag = dpg.generate_uuid()
+    
+        with dpg.window(
+            label="About",
+            modal=True,
+            show=True,
+            tag=dialog_tag,
+            width=400,
+            height=200,
+            pos=[dpg.get_viewport_width() // 2 - 200, dpg.get_viewport_height() // 2 - 125],
+            no_resize=True,
+            no_move=True
+        ):
+            dpg.add_text(Config.APP_NAME, color=(100, 200, 250))
+            dpg.add_text(f"Version {Config.APP_VERSION}")
+            dpg.add_separator()
+            dpg.add_spacer(height=10)
+            dpg.add_text("Developed by B3n00n, Combatica LTD", color=(150, 150, 150))
+            dpg.add_text("© 2025 All rights reserved", color=(150, 150, 150))
+            dpg.add_spacer(height=20)
+
+            dpg.add_button(
+                label="Close",
+                callback=lambda: dpg.delete_item(dialog_tag),
+                width=-1
+            )

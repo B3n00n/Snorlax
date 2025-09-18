@@ -11,7 +11,6 @@ from gui.windows.main_window import MainWindow
 from gui.themes.dark_theme import apply_dark_theme
 from utils.event_bus import event_bus, EventType
 
-
 def resource_path(relative_path):
     try:
         base_path = sys._MEIPASS
@@ -34,7 +33,7 @@ class QuestControlGUI:
         dpg.create_context()
         
         dpg.create_viewport(
-            title="Combatica Quest Control Center",
+            title=f"{Config.APP_NAME} - v{Config.APP_VERSION}",
             width=self.config.WINDOW_WIDTH,
             height=self.config.WINDOW_HEIGHT
         )
