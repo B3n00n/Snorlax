@@ -17,6 +17,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.b3n00n.snorlax.activities.ServerConfigurationActivity
 import com.b3n00n.snorlax.config.ServerConfigurationManager
+import com.b3n00n.snorlax.config.SnorlaxConfigManager
 import com.b3n00n.snorlax.handlers.CommandHandler
 import com.b3n00n.snorlax.models.DeviceInfo
 import com.b3n00n.snorlax.network.ConnectionManager
@@ -96,7 +97,7 @@ class RemoteClientService : Service(), ConnectionManager.ConnectionListener {
     private fun createNotificationChannel() {
         val channel = NotificationChannel(
             CHANNEL_ID,
-            "Snorlax Remote Service",
+            "Snorlax",
             NotificationManager.IMPORTANCE_LOW
         ).apply {
             description = "Keeps connection to remote server active"
@@ -128,8 +129,8 @@ class RemoteClientService : Service(), ConnectionManager.ConnectionListener {
         )
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Snorlax Remote Active")
-            .setContentText("Server: $serverInfo")
+            .setContentTitle(SnorlaxConfigManager.APP_NAME)
+            .setContentText("Server: $serverInfo | Version: ${SnorlaxConfigManager.APP_VERSION}")
             .setSmallIcon(android.R.drawable.ic_menu_mylocation)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)
