@@ -44,9 +44,16 @@ class DeviceDetailsPanel:
             
             dpg.add_spacer(height=10)
             
-            dpg.add_text("Recent Commands")
+            with dpg.group(horizontal=True):
+                dpg.add_text("Recent Commands")
+                dpg.add_spacer(width=265)
+                dpg.add_button(
+                    label="Clear",
+                    callback=self._clear_recent_commands,
+                    small=True
+                )
             dpg.add_separator()
-            
+
             self.detail_tags['command_history'] = dpg.generate_uuid()
             dpg.add_child_window(
                 tag=self.detail_tags['command_history'],
@@ -146,3 +153,10 @@ class DeviceDetailsPanel:
         
         if prepend:
             dpg.set_y_scroll(self.detail_tags['command_history'], -1.0)
+
+    def _clear_recent_commands(self):
+        if self.detail_tags.get('command_history') and dpg.does_item_exist(self.detail_tags['command_history']):
+            dpg.delete_item(self.detail_tags['command_history'], children_only=True)
+        
+        if self.current_device:
+            self.current_device.command_history.clear()

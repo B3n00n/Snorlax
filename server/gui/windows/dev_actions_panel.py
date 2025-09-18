@@ -52,15 +52,15 @@ class DevActionsPanel:
             dpg.add_spacer(height=20)
             
             # Dev Log
-            dpg.add_text("Developer Log")
+            with dpg.group(horizontal=True):
+                dpg.add_text("Developer Log")
+                dpg.add_spacer(width=235)
+                dpg.add_button(
+                    label="Clear",
+                    callback=self._clear_dev_log,
+                    small=True
+                )
             dpg.add_separator()
-            
-            self.log_tag = dpg.generate_uuid()
-            dpg.add_child_window(
-                tag=self.log_tag,
-                height=-1,
-                border=True
-            )
     
     def _log_message(self, message: str, level: str = "info"):
         colors = {
@@ -243,3 +243,8 @@ class DevActionsPanel:
                     callback=lambda: dpg.delete_item(dialog_tag),
                     width=75
                 )
+
+
+    def _clear_dev_log(self):
+        if self.log_tag and dpg.does_item_exist(self.log_tag):
+            dpg.delete_item(self.log_tag, children_only=True)

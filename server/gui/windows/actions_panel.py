@@ -103,8 +103,14 @@ class ActionsPanel:
 
             dpg.add_spacer(height=20)
             
-            # Command log
-            dpg.add_text("Command Log")
+            with dpg.group(horizontal=True):
+                dpg.add_text("Command Log")
+                dpg.add_spacer(width=245)
+                dpg.add_button(
+                    label="Clear",
+                    callback=self._clear_command_log,
+                    small=True
+                )
             dpg.add_separator()
             
             self.log_tag = dpg.generate_uuid()
@@ -620,3 +626,7 @@ class ActionsPanel:
         device = devices[0]
         device.request_volume_status()
         self._log_message(f"Requesting volume status from {device.get_display_name()}", "info")
+
+    def _clear_command_log(self):
+        if self.log_tag and dpg.does_item_exist(self.log_tag):
+            dpg.delete_item(self.log_tag, children_only=True)
