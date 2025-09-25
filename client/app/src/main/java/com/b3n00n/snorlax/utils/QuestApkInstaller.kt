@@ -1,17 +1,51 @@
 package com.b3n00n.snorlax.utils
 
+import android.app.PendingIntent
 import android.app.admin.DevicePolicyManager
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageInstaller
 import android.os.Build
 import android.util.Log
+import androidx.core.content.ContextCompat
 import com.b3n00n.snorlax.receivers.DeviceOwnerReceiver
+import kotlinx.coroutines.*
 import java.io.File
 import java.io.FileInputStream
+import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 
 object QuestApkInstaller {
     private const val TAG = "QuestApkInstaller"
+    private const val ACTION_INSTALL_COMPLETE = "com.b3n00n.snorlax.INSTALL_COMPLETE"
+    private const val INSTALL_TIMEOUT_MS = 30000L
 
+    suspend fun installApkAsync(context: Context, apkFile: File): InstallResult = withContext(Dispatchers.IO) {
+        Log.d(TAG, "Attempting to install: ${apkFile.absolutePath}")
+
+        // Verify the APK file
+        if (!apkFile.exists()) {
+            return@withContext InstallResult.Error("APK file does not exist")
+        }
+
+        if (apkFile.length() == 0L) {
+            return@withContext InstallResult.Error("APK file is empty")
+        }
+
+        // Check if we're device owner
+        val devicePolicyManager = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+        val isDeviceOwner = devicePolicyManager.isDeviceOwnerApp(context.packageName)
+
+        if (!isDeviceOwner) {
+            return@withContext InstallResult.Error("App is not device owner. Cannot install.")
+        }
+
+        return@withContext installSilentlyAsync(context, apkFile)
+    }
+
+    // Keep the old synchronous method for backward compatibility
     fun installApk(context: Context, apkFile: File): InstallResult {
         Log.d(TAG, "Attempting to install: ${apkFile.absolutePath}")
 
@@ -40,6 +74,144 @@ object QuestApkInstaller {
         }
     }
 
+    private suspend fun installSilentlyAsync(context: Context, apkFile: File): InstallResult =
+        suspendCoroutine { continuation ->
+            val sessionId = System.currentTimeMillis().toInt() and 0x7FFFFFFF
+
+            // Create a broadcast receiver for this specific installation
+            val receiver = object : BroadcastReceiver() {
+                override fun onReceive(ctx: Context, intent: Intent) {
+                    val extraSessionId = intent.getIntExtra(PackageInstaller.EXTRA_SESSION_ID, -1)
+
+                    if (extraSessionId != sessionId) {
+                        return // Not our session
+                    }
+
+                    val status = intent.getIntExtra(PackageInstaller.EXTRA_STATUS, PackageInstaller.STATUS_FAILURE)
+                    val message = intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE) ?: ""
+
+                    // Unregister this receiver
+                    try {
+                        context.unregisterReceiver(this)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error unregistering receiver", e)
+                    }
+
+                    when (status) {
+                        PackageInstaller.STATUS_SUCCESS -> {
+                            Log.d(TAG, "Installation successful for session $sessionId")
+                            continuation.resume(InstallResult.Success("APK installed successfully"))
+                        }
+                        PackageInstaller.STATUS_FAILURE_ABORTED -> {
+                            Log.e(TAG, "Installation aborted: $message")
+                            continuation.resume(InstallResult.Error("Installation aborted: $message"))
+                        }
+                        PackageInstaller.STATUS_FAILURE_BLOCKED -> {
+                            Log.e(TAG, "Installation blocked: $message")
+                            continuation.resume(InstallResult.Error("Installation blocked: $message"))
+                        }
+                        PackageInstaller.STATUS_FAILURE_CONFLICT -> {
+                            Log.e(TAG, "Installation conflict: $message")
+                            continuation.resume(InstallResult.Error("Installation conflict: $message"))
+                        }
+                        PackageInstaller.STATUS_FAILURE_INCOMPATIBLE -> {
+                            Log.e(TAG, "Incompatible APK: $message")
+                            continuation.resume(InstallResult.Error("Incompatible APK: $message"))
+                        }
+                        PackageInstaller.STATUS_FAILURE_INVALID -> {
+                            Log.e(TAG, "Invalid APK: $message")
+                            continuation.resume(InstallResult.Error("Invalid APK: $message"))
+                        }
+                        PackageInstaller.STATUS_FAILURE_STORAGE -> {
+                            Log.e(TAG, "Storage error: $message")
+                            continuation.resume(InstallResult.Error("Storage error: $message"))
+                        }
+                        else -> {
+                            Log.e(TAG, "Installation failed with code $status: $message")
+                            continuation.resume(InstallResult.Error("Installation failed: $message"))
+                        }
+                    }
+                }
+            }
+
+            try {
+                // Register the receiver
+                val filter = IntentFilter(ACTION_INSTALL_COMPLETE)
+                ContextCompat.registerReceiver(
+                    context,
+                    receiver,
+                    filter,
+                    ContextCompat.RECEIVER_NOT_EXPORTED
+                )
+
+                // Perform the installation
+                val packageInstaller = context.packageManager.packageInstaller
+                val packageName = context.packageManager.getPackageArchiveInfo(apkFile.absolutePath, 0)?.packageName
+
+                val params = PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL).apply {
+                    setAppPackageName(packageName)
+                }
+
+                val realSessionId = packageInstaller.createSession(params)
+                val session = packageInstaller.openSession(realSessionId)
+
+                // Copy APK to session
+                FileInputStream(apkFile).use { input ->
+                    session.openWrite("base.apk", 0, apkFile.length()).use { output ->
+                        input.copyTo(output)
+                        session.fsync(output)
+                    }
+                }
+
+                // Create intent for installation result with our custom action
+                val intent = Intent(ACTION_INSTALL_COMPLETE).apply {
+                    setPackage(context.packageName)
+                    putExtra(PackageInstaller.EXTRA_SESSION_ID, sessionId)
+                }
+
+                val pendingIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    PendingIntent.getBroadcast(
+                        context,
+                        sessionId,
+                        intent,
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+                    )
+                } else {
+                    PendingIntent.getBroadcast(
+                        context,
+                        sessionId,
+                        intent,
+                        PendingIntent.FLAG_UPDATE_CURRENT
+                    )
+                }
+
+                session.commit(pendingIntent.intentSender)
+                session.close()
+
+                Log.d(TAG, "Installation session committed for session ID: $sessionId")
+
+                // Set a timeout
+                GlobalScope.launch {
+                    delay(INSTALL_TIMEOUT_MS)
+                    try {
+                        context.unregisterReceiver(receiver)
+                        continuation.resume(InstallResult.Error("Installation timeout after ${INSTALL_TIMEOUT_MS/1000} seconds"))
+                    } catch (e: Exception) {
+                        // Receiver was already unregistered, installation completed
+                    }
+                }
+
+            } catch (e: Exception) {
+                Log.e(TAG, "Error during installation", e)
+                try {
+                    context.unregisterReceiver(receiver)
+                } catch (ex: Exception) {
+                    // Ignore
+                }
+                continuation.resume(InstallResult.Error("Installation error: ${e.message}"))
+            }
+        }
+
     private fun installSilently(context: Context, apkFile: File): InstallResult {
         val packageInstaller = context.packageManager.packageInstaller
         val params = PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL).apply {
@@ -58,23 +230,23 @@ object QuestApkInstaller {
         }
 
         // Create intent for installation result
-        val intent = android.content.Intent(context, DeviceOwnerReceiver::class.java).apply {
+        val intent = Intent(context, DeviceOwnerReceiver::class.java).apply {
             action = "PACKAGE_INSTALLED"
         }
 
         val pendingIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            android.app.PendingIntent.getBroadcast(
+            PendingIntent.getBroadcast(
                 context,
                 sessionId,
                 intent,
-                android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_MUTABLE
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
             )
         } else {
-            android.app.PendingIntent.getBroadcast(
+            PendingIntent.getBroadcast(
                 context,
                 sessionId,
                 intent,
-                android.app.PendingIntent.FLAG_UPDATE_CURRENT
+                PendingIntent.FLAG_UPDATE_CURRENT
             )
         }
 

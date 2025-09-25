@@ -317,14 +317,6 @@ class ActionsPanel:
         
         dpg.set_frame_callback(dpg.get_frame_count() + 60, callback=lambda: update_app_list())
     
-    def _refresh_and_reopen_launch(self, devices, current_dialog):
-        dpg.delete_item(current_dialog)
-        for device in devices:
-            device_id = device.get_id()
-            if device_id in self.combatica_apps_cache:
-                del self.combatica_apps_cache[device_id]
-        self._show_launch_combatica_app_dialog()
-    
     def _show_uninstall_combatica_app_dialog(self):
         devices = self._get_target_devices("uninstall Combatica app")
         if not devices:
@@ -464,17 +456,7 @@ class ActionsPanel:
                     width=75
                 )
         
-        # Schedule initial update after a delay
         dpg.set_frame_callback(dpg.get_frame_count() + 60, callback=lambda: update_app_list())
-    
-    def _refresh_and_reopen_uninstall(self, devices, current_dialog):
-        dpg.delete_item(current_dialog)
-        # Clear cache to force refresh
-        for device in devices:
-            device_id = device.get_id()
-            if device_id in self.combatica_apps_cache:
-                del self.combatica_apps_cache[device_id]
-        self._show_uninstall_combatica_app_dialog()
     
     def _list_combatica_apps(self):
         devices = self._get_target_devices("list Combatica apps")
@@ -500,6 +482,7 @@ class ActionsPanel:
             apk_url = dpg.get_value(input_tag).strip()
             if apk_url and apk_url.startswith(('http://', 'https://')):
                 for device in devices:
+                    # Send URL directly without cache busting
                     device.send_command(MessageType.DOWNLOAD_AND_INSTALL_APK, apk_url)
                     self._log_message(f"Installing APK on {device.get_display_name()}: {apk_url}", "info")
             else:
