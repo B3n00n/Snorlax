@@ -39,7 +39,8 @@ object QuestApkInstaller {
         }
 
         // Check if we're device owner
-        val devicePolicyManager = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+        val devicePolicyManager =
+            context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
         val isDeviceOwner = devicePolicyManager.isDeviceOwnerApp(context.packageName)
 
         if (!isDeviceOwner) {
@@ -61,20 +62,19 @@ object QuestApkInstaller {
             val permissionManager = PermissionManager(context)
             val grantResult = permissionManager.grantBluetoothPermissions(packageName)
 
-            val enhancedMessage = when (grantResult) {
+            when (grantResult) {
                 is PermissionManager.GrantResult.Success -> {
-                    "${installResult.message}\nBluetooth permissions granted."
+                    Log.d(TAG, "Bluetooth permissions granted: ${grantResult.message}")
                 }
+
                 is PermissionManager.GrantResult.PartialSuccess -> {
-                    "${installResult.message}\nSome permissions granted: ${grantResult.message}"
+                    Log.d(TAG, "Some permissions granted: ${grantResult.message}")
                 }
+
                 is PermissionManager.GrantResult.Error -> {
-                    "${installResult.message}\nPermission grant failed: ${grantResult.message}"
+                    Log.e(TAG, "Permission grant failed: ${grantResult.message}")
                 }
             }
-
-            Log.d(TAG, "Installation with permissions: $enhancedMessage")
-            return@withContext InstallResult.Success(enhancedMessage)
         }
 
         return@withContext installResult
