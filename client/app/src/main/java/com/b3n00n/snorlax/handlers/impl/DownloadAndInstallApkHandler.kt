@@ -379,11 +379,10 @@ class DownloadAndInstallApkHandler(private val context: Context) : MessageHandle
 
             Log.d(TAG, "Installing package: $packageName v$versionName")
 
-            when (val result = QuestApkInstaller.installApkAsync(context, apkFile)) {
+            when (val result = QuestApkInstaller.installApkAsync(context, apkFile, autoGrantPermissions = true)) {
                 is QuestApkInstaller.InstallResult.Success -> {
-                    commandHandler.sendResponse(true, "$packageName v$versionName installed successfully!")
+                    commandHandler.sendResponse(true, result.message)
 
-                    // Clean up the APK file after installation
                     downloadScope.launch {
                         delay(5000)
                         try {

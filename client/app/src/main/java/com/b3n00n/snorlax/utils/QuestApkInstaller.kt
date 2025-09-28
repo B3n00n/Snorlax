@@ -22,7 +22,11 @@ object QuestApkInstaller {
     private const val ACTION_INSTALL_COMPLETE = "com.b3n00n.snorlax.INSTALL_COMPLETE"
     private const val INSTALL_TIMEOUT_MS = 30000L
 
-    suspend fun installApkAsync(context: Context, apkFile: File): InstallResult = withContext(Dispatchers.IO) {
+    suspend fun installApkAsync(
+        context: Context,
+        apkFile: File,
+        autoGrantPermissions: Boolean = true
+    ): InstallResult = withContext(Dispatchers.IO) {
         Log.d(TAG, "Attempting to install: ${apkFile.absolutePath}")
 
         // Verify the APK file
@@ -42,7 +46,38 @@ object QuestApkInstaller {
             return@withContext InstallResult.Error("App is not device owner. Cannot install.")
         }
 
-        return@withContext installSilentlyAsync(context, apkFile)
+        val packageInfo = context.packageManager.getPackageArchiveInfo(apkFile.absolutePath, 0)
+        val packageName = packageInfo?.packageName
+
+        if (packageName == null) {
+            return@withContext InstallResult.Error("Cannot read package name from APK")
+        }
+
+        val installResult = installSilentlyAsync(context, apkFile)
+
+        if (installResult is InstallResult.Success && autoGrantPermissions) {
+            delay(1000)
+
+            val permissionManager = PermissionManager(context)
+            val grantResult = permissionManager.grantBluetoothPermissions(packageName)
+
+            val enhancedMessage = when (grantResult) {
+                is PermissionManager.GrantResult.Success -> {
+                    "${installResult.message}\nBluetooth permissions granted."
+                }
+                is PermissionManager.GrantResult.PartialSuccess -> {
+                    "${installResult.message}\nSome permissions granted: ${grantResult.message}"
+                }
+                is PermissionManager.GrantResult.Error -> {
+                    "${installResult.message}\nPermission grant failed: ${grantResult.message}"
+                }
+            }
+
+            Log.d(TAG, "Installation with permissions: $enhancedMessage")
+            return@withContext InstallResult.Success(enhancedMessage)
+        }
+
+        return@withContext installResult
     }
 
     // Keep the old synchronous method for backward compatibility

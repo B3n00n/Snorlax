@@ -193,14 +193,12 @@ class InstallLocalApkHandler(private val context: Context) : MessageHandler {
             // Install the APK using async installation
             Log.d(TAG, "Starting installation...")
 
-            when (val result = QuestApkInstaller.installApkAsync(context, tempFile)) {
+            when (val result = QuestApkInstaller.installApkAsync(context, tempFile, autoGrantPermissions = true)) {
                 is QuestApkInstaller.InstallResult.Success -> {
                     Log.d(TAG, "Installation completed: ${result.message}")
 
-                    val finalMessage = "$packageName v$versionName installed successfully!"
-
                     withContext(Dispatchers.Main) {
-                        commandHandler.sendResponse(true, finalMessage)
+                        commandHandler.sendResponse(true, result.message)
                     }
                 }
                 is QuestApkInstaller.InstallResult.Error -> {
