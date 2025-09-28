@@ -84,7 +84,20 @@ class MainWindow:
         if self.status_tag and dpg.does_item_exist(self.status_tag):
             host = data.get('host', 'unknown')
             port = data.get('port', 'unknown')
-            dpg.set_value(self.status_tag, f"Server: Running on {host}:{port}")
+        
+            if host == '0.0.0.0':
+                import socket
+                try:
+                    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                    s.connect(("8.8.8.8", 80))
+                    display_host = s.getsockname()[0]
+                    s.close()
+                except:
+                    display_host = host
+            else:
+                display_host = host
+            
+            dpg.set_value(self.status_tag, f"Server: Running on {display_host}:{port}")
             dpg.configure_item(self.status_tag, color=(100, 250, 100))
     
     def _on_server_stopped(self, data=None):
