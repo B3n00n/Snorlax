@@ -19,24 +19,24 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 /**
- * Handles InstallLocalApk command (0x47): [filename: String]
+ * Handles InstallApk command (0x46): [url: String]
  * Responds with ApkInstallResponse (0x14): [success: bool][message: String]
- * Downloads APK from local server and installs it
+ * Downloads APK from URL and installs it
  */
-@PacketHandler(MessageOpcode.INSTALL_LOCAL_APK)
-class InstallLocalApkHandler(private val context: Context) : IPacketHandler {
+@PacketHandler(MessageOpcode.INSTALL_APK)
+class InstallApkHandler(private val context: Context) : IPacketHandler {
     companion object {
-        private const val TAG = "InstallLocalApkHandler"
+        private const val TAG = "InstallApkHandler"
     }
 
     override fun handle(reader: PacketReader, writer: PacketWriter) {
-        val filename = reader.readString()
+        val url = reader.readString()
 
-        Log.d(TAG, "Installing local APK: $filename")
+        Log.d(TAG, "Installing APK from: $url")
 
         // Download and install synchronously (blocks until complete)
         val (success, message) = runBlocking {
-            downloadAndInstall(filename)
+            downloadAndInstall(url)
         }
 
         // Send final response
@@ -53,10 +53,9 @@ class InstallLocalApkHandler(private val context: Context) : IPacketHandler {
         writer.writeBytes(payload.toByteArray())
     }
 
-    private suspend fun downloadAndInstall(filename: String): Pair<Boolean, String> = withContext(Dispatchers.IO) {
+    private suspend fun downloadAndInstall(urlString: String): Pair<Boolean, String> = withContext(Dispatchers.IO) {
         try {
-            // Construct local URL (server address from filename)
-            val url = URL(filename)
+            val url = URL(urlString)
             val connection = url.openConnection() as HttpURLConnection
             connection.connect()
 
@@ -65,7 +64,7 @@ class InstallLocalApkHandler(private val context: Context) : IPacketHandler {
             }
 
             val tempDir = File(context.filesDir, "temp_apks").apply { mkdirs() }
-            val tempFile = File(tempDir, "local_${System.currentTimeMillis()}.apk")
+            val tempFile = File(tempDir, "download_${System.currentTimeMillis()}.apk")
 
             FileOutputStream(tempFile).use { output ->
                 connection.inputStream.use { input ->
@@ -94,7 +93,7 @@ class InstallLocalApkHandler(private val context: Context) : IPacketHandler {
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error installing local APK", e)
+            Log.e(TAG, "Error installing APK", e)
             false to "Error: ${e.message}"
         }
     }

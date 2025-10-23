@@ -21,7 +21,7 @@ import com.b3n00n.snorlax.R
 import com.b3n00n.snorlax.activities.ServerConfigurationActivity
 import com.b3n00n.snorlax.config.ServerConfigurationManager
 import com.b3n00n.snorlax.config.SnorlaxConfigManager
-import com.b3n00n.snorlax.handlers.CommandHandler
+import com.b3n00n.snorlax.handlers.MessageDispatcher
 import com.b3n00n.snorlax.models.DeviceInfo
 import com.b3n00n.snorlax.network.ConnectionManager
 import com.b3n00n.snorlax.network.NetworkClient
@@ -35,7 +35,7 @@ class RemoteClientService : Service(), ConnectionManager.ConnectionListener {
     }
 
     private var networkClient: NetworkClient? = null
-    private var commandHandler: CommandHandler? = null
+    private var dispatcher: MessageDispatcher? = null
     private var isServiceRunning = false
     private lateinit var configManager: ServerConfigurationManager
 
@@ -60,7 +60,7 @@ class RemoteClientService : Service(), ConnectionManager.ConnectionListener {
         networkClient = NetworkClient(serverIp, serverPort)
         networkClient!!.setConnectionListener(this)
 
-        commandHandler = CommandHandler(this, networkClient!!)
+        dispatcher = MessageDispatcher(this, networkClient!!)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -149,7 +149,7 @@ class RemoteClientService : Service(), ConnectionManager.ConnectionListener {
             override fun run() {
                 try {
                     if (networkClient?.isConnected() == true) {
-                        commandHandler?.sendHeartbeat()
+                        dispatcher?.sendHeartbeat()
                         Log.d(TAG, "Heartbeat sent")
                     }
                     heartbeatHandler?.postDelayed(this, heartbeatInterval)
@@ -202,7 +202,7 @@ class RemoteClientService : Service(), ConnectionManager.ConnectionListener {
     }
 
     override fun onDataReceived(data: ByteArray) {
-        commandHandler!!.handleMessage(data)
+        dispatcher!!.handleIncoming(data)
     }
 
     override fun onError(e: Exception) {
@@ -212,7 +212,7 @@ class RemoteClientService : Service(), ConnectionManager.ConnectionListener {
     private fun sendDeviceInfo() {
         try {
             val deviceInfo = DeviceInfo(this)
-            commandHandler?.sendDeviceConnected(deviceInfo.model, deviceInfo.serial)
+            dispatcher?.sendDeviceConnected(deviceInfo.model, deviceInfo.serial)
             Log.d(TAG, "Sent device info")
         } catch (e: Exception) {
             Log.e(TAG, "Error sending device info", e)

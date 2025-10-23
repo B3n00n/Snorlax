@@ -10,215 +10,113 @@ import android.content.pm.PackageInstaller
 import android.os.Build
 import android.util.Log
 import androidx.core.content.ContextCompat
-import com.b3n00n.snorlax.handlers.CommandHandler
-import com.b3n00n.snorlax.handlers.ServerPacketHandler
-import com.b3n00n.snorlax.protocol.ServerPacket
-import com.b3n00n.snorlax.receivers.DeviceOwnerReceiver
-import kotlinx.coroutines.*
+import com.b3n00n.snorlax.handlers.IPacketHandler
+import com.b3n00n.snorlax.handlers.PacketHandler
+import com.b3n00n.snorlax.protocol.MessageOpcode
+import com.b3n00n.snorlax.protocol.PacketReader
+import com.b3n00n.snorlax.protocol.PacketWriter
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 
-class UninstallAppHandler(private val context: Context) : ServerPacketHandler {
+/**
+ * Handles UninstallApp command (0x49): [package_name: String]
+ * Responds with UninstallAppResponse (0x15): [success: bool][message: String]
+ */
+@PacketHandler(MessageOpcode.UNINSTALL_APP)
+class UninstallAppHandler(private val context: Context) : IPacketHandler {
     companion object {
         private const val TAG = "UninstallAppHandler"
-        private const val ACTION_UNINSTALL_COMPLETE = "com.b3n00n.snorlax.UNINSTALL_COMPLETE"
-        private const val UNINSTALL_TIMEOUT_MS = 15000L
+        private const val TIMEOUT_MS = 10000L
     }
 
-    private val uninstallScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    override fun handle(reader: PacketReader, writer: PacketWriter) {
+        val packageName = reader.readString()
 
-    override fun canHandle(packet: ServerPacket): Boolean {
-        return packet is ServerPacket.UninstallApp
+        Log.d(TAG, "Uninstalling: $packageName")
+
+        // Run uninstall synchronously (blocks until complete or timeout)
+        val (success, message) = runBlocking {
+            uninstallPackage(packageName)
+        }
+
+        // Build payload
+        val payload = PacketWriter()
+        payload.writeU8(if (success) 1 else 0)
+        payload.writeString(message)
+
+        // Write response packet
+        writer.writeU8(MessageOpcode.UNINSTALL_APP_RESPONSE.toInt() and 0xFF)
+        writer.writeU16(payload.toByteArray().size)
+        writer.writeBytes(payload.toByteArray())
     }
 
-    override fun handle(packet: ServerPacket, commandHandler: CommandHandler) {
-        if (packet !is ServerPacket.UninstallApp) return
-
-        val packageName = packet.packageName
-        Log.d(TAG, "Uninstalling app: $packageName")
-
-        val devicePolicyManager = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
-
-        // Check if we're device owner
-        if (!devicePolicyManager.isDeviceOwnerApp(context.packageName)) {
-            commandHandler.sendUninstallAppResponse(false, "App is not device owner. Cannot uninstall apps.")
-            return
-        }
-
-        // Don't allow uninstalling ourselves
-        if (packageName == context.packageName) {
-            commandHandler.sendUninstallAppResponse(false, "Cannot uninstall Snorlax itself!")
-            return
-        }
-
-        // Check if package exists
-        val packageExists = try {
-            context.packageManager.getPackageInfo(packageName, 0)
-            true
-        } catch (e: Exception) {
-            false
-        }
-
-        if (!packageExists) {
-            commandHandler.sendUninstallAppResponse(false, "Package not found: $packageName")
-            return
-        }
-
-        // Use coroutine for async uninstall with callback
-        uninstallScope.launch {
-            uninstallWithCallback(packageName, commandHandler)
-        }
-    }
-
-    private suspend fun uninstallWithCallback(packageName: String, commandHandler: CommandHandler) = withContext(Dispatchers.IO) {
-        val sessionId = packageName.hashCode()
-        var receiverRegistered = false
-
-        // Create a broadcast receiver for uninstall completion
-        val receiver = object : BroadcastReceiver() {
-            override fun onReceive(ctx: Context, intent: Intent) {
-                val extraPackage = intent.getStringExtra("package_name")
-                val extraSessionId = intent.getIntExtra("session_id", -1)
-
-                if (extraPackage != packageName || extraSessionId != sessionId) {
-                    return // Not our uninstall
+    private suspend fun uninstallPackage(packageName: String): Pair<Boolean, String> =
+        suspendCoroutine { continuation ->
+            try {
+                val devicePolicyManager = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+                if (!devicePolicyManager.isDeviceOwnerApp(context.packageName)) {
+                    continuation.resume(false to "Not device owner")
+                    return@suspendCoroutine
                 }
 
-                val status = intent.getIntExtra("status", PackageInstaller.STATUS_FAILURE)
-                val message = intent.getStringExtra("message") ?: ""
+                val sessionId = System.currentTimeMillis().toInt() and 0x7FFFFFFF
+                val packageInstaller = context.packageManager.packageInstaller
 
-                // Unregister this receiver
-                try {
-                    context.unregisterReceiver(this)
-                    receiverRegistered = false
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error unregistering receiver", e)
-                }
+                val receiver = object : BroadcastReceiver() {
+                    override fun onReceive(ctx: Context, intent: Intent) {
+                        val status = intent.getIntExtra(PackageInstaller.EXTRA_STATUS, PackageInstaller.STATUS_FAILURE)
+                        val message = intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE) ?: ""
 
-                // Send response based on status
-                when (status) {
-                    PackageInstaller.STATUS_SUCCESS -> {
-                        Log.d(TAG, "$packageName uninstalled successfully")
-                        commandHandler.sendUninstallAppResponse(true, "$packageName uninstalled successfully")
-                    }
-                    PackageInstaller.STATUS_FAILURE_ABORTED -> {
-                        Log.e(TAG, "Uninstall aborted for $packageName: $message")
-                        commandHandler.sendUninstallAppResponse(false, "Uninstall aborted: $message")
-                    }
-                    else -> {
-                        Log.e(TAG, "Failed to uninstall $packageName: $message")
-                        commandHandler.sendUninstallAppResponse(false, "Uninstall failed: $message")
+                        try {
+                            context.unregisterReceiver(this)
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Error unregistering receiver", e)
+                        }
+
+                        when (status) {
+                            PackageInstaller.STATUS_SUCCESS -> {
+                                continuation.resume(true to "Uninstalled $packageName")
+                            }
+                            else -> {
+                                continuation.resume(false to "Failed: $message")
+                            }
+                        }
                     }
                 }
-            }
-        }
 
-        try {
-            // Register the receiver
-            val filter = IntentFilter(ACTION_UNINSTALL_COMPLETE)
-            ContextCompat.registerReceiver(
-                context,
-                receiver,
-                filter,
-                ContextCompat.RECEIVER_NOT_EXPORTED
-            )
-            receiverRegistered = true
+                val filter = IntentFilter("com.b3n00n.snorlax.UNINSTALL_$sessionId")
+                ContextCompat.registerReceiver(context, receiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
 
-            // Start immediate response that uninstall is initiated
-            commandHandler.sendUninstallAppResponse(true, "Uninstalling $packageName...")
-
-            // Create PackageInstaller session for uninstall
-            val packageInstaller = context.packageManager.packageInstaller
-
-            // Create a custom intent for uninstall result
-            val intent = Intent(ACTION_UNINSTALL_COMPLETE).apply {
-                setPackage(context.packageName)
-                putExtra("package_name", packageName)
-                putExtra("session_id", sessionId)
-            }
-
-            // We need to create a wrapper receiver to capture the actual uninstall result
-            val uninstallReceiver = object : BroadcastReceiver() {
-                override fun onReceive(context: Context, resultIntent: Intent) {
-                    val status = resultIntent.getIntExtra(PackageInstaller.EXTRA_STATUS, PackageInstaller.STATUS_FAILURE)
-                    val statusMessage = resultIntent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE) ?: ""
-
-                    // Forward to our custom receiver
-                    val forwardIntent = Intent(ACTION_UNINSTALL_COMPLETE).apply {
-                        setPackage(context.packageName)
-                        putExtra("package_name", packageName)
-                        putExtra("session_id", sessionId)
-                        putExtra("status", status)
-                        putExtra("message", statusMessage)
-                    }
-                    context.sendBroadcast(forwardIntent)
-
-                    // Unregister this temporary receiver
-                    try {
-                        context.unregisterReceiver(this)
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Error unregistering uninstall receiver", e)
-                    }
+                val intent = Intent("com.b3n00n.snorlax.UNINSTALL_$sessionId").apply {
+                    setPackage(context.packageName)
                 }
-            }
 
-            // Register the uninstall receiver
-            val uninstallFilter = IntentFilter()
-            uninstallFilter.addAction("com.b3n00n.snorlax.UNINSTALL_RESULT_$sessionId")
-            ContextCompat.registerReceiver(
-                context,
-                uninstallReceiver,
-                uninstallFilter,
-                ContextCompat.RECEIVER_NOT_EXPORTED
-            )
+                val pendingIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    PendingIntent.getBroadcast(context, sessionId, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE)
+                } else {
+                    PendingIntent.getBroadcast(context, sessionId, intent, PendingIntent.FLAG_UPDATE_CURRENT)
+                }
 
-            // Create pending intent for the uninstall result
-            val resultIntent = Intent("com.b3n00n.snorlax.UNINSTALL_RESULT_$sessionId").apply {
-                setPackage(context.packageName)
-            }
+                packageInstaller.uninstall(packageName, pendingIntent.intentSender)
 
-            val pendingIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                PendingIntent.getBroadcast(
-                    context,
-                    sessionId,
-                    resultIntent,
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
-                )
-            } else {
-                PendingIntent.getBroadcast(
-                    context,
-                    sessionId,
-                    resultIntent,
-                    PendingIntent.FLAG_UPDATE_CURRENT
-                )
-            }
-
-            // Perform the uninstall
-            packageInstaller.uninstall(packageName, pendingIntent.intentSender)
-
-            Log.d(TAG, "Uninstall initiated for $packageName with session ID: $sessionId")
-
-            // Set a timeout for the uninstall
-            GlobalScope.launch {
-                delay(UNINSTALL_TIMEOUT_MS)
-                if (receiverRegistered) {
+                // Timeout
+                GlobalScope.launch {
+                    delay(TIMEOUT_MS)
                     try {
                         context.unregisterReceiver(receiver)
-                        commandHandler.sendUninstallAppResponse(false, "Uninstall timeout for $packageName after ${UNINSTALL_TIMEOUT_MS/1000} seconds")
+                        continuation.resume(false to "Timeout")
                     } catch (e: Exception) {
-                        // Receiver was already unregistered, uninstall completed
+                        // Already unregistered
                     }
                 }
-            }
 
-        } catch (e: Exception) {
-            Log.e(TAG, "Error during uninstall", e)
-            if (receiverRegistered) {
-                try {
-                    context.unregisterReceiver(receiver)
-                } catch (ex: Exception) {
-                    // Ignore
-                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error uninstalling", e)
+                continuation.resume(false to "Error: ${e.message}")
             }
-            commandHandler.sendUninstallAppResponse(false, "Uninstall error: ${e.message}")
         }
-    }
 }

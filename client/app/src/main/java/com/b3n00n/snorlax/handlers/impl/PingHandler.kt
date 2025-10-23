@@ -4,47 +4,50 @@ import android.content.Context
 import android.media.AudioManager
 import android.media.ToneGenerator
 import android.util.Log
-import com.b3n00n.snorlax.handlers.CommandHandler
-import com.b3n00n.snorlax.handlers.ServerPacketHandler
-import com.b3n00n.snorlax.protocol.ServerPacket
+import com.b3n00n.snorlax.handlers.IPacketHandler
+import com.b3n00n.snorlax.handlers.PacketHandler
+import com.b3n00n.snorlax.protocol.MessageOpcode
+import com.b3n00n.snorlax.protocol.PacketReader
+import com.b3n00n.snorlax.protocol.PacketWriter
 
-class PingHandler(private val context: Context) : ServerPacketHandler {
+/**
+ * Handles Ping command (0x45): [timestamp: u64]
+ * Responds with PingResponse (0x13): [timestamp: u64] (echoes back)
+ */
+@PacketHandler(MessageOpcode.PING)
+class PingHandler(private val context: Context) : IPacketHandler {
     companion object {
         private const val TAG = "PingHandler"
     }
 
-    override fun canHandle(packet: ServerPacket): Boolean {
-        return packet is ServerPacket.Ping
-    }
+    override fun handle(reader: PacketReader, writer: PacketWriter) {
+        val timestamp = reader.readU64()
 
-    override fun handle(packet: ServerPacket, commandHandler: CommandHandler) {
-        if (packet !is ServerPacket.Ping) return
+        Log.d(TAG, "Ping received: $timestamp")
 
-        Log.d(TAG, "Received ping with timestamp: ${packet.timestamp}")
-
+        // Play notification sound asynchronously to avoid blocking
         try {
-            playPingSound()
-            // Echo back the timestamp
-            commandHandler.sendPingResponse(packet.timestamp)
-        } catch (e: Exception) {
-            Log.e(TAG, "Error handling ping", e)
-            commandHandler.sendPingResponse(packet.timestamp)
-        }
-    }
-
-    private fun playPingSound() {
-        try {
-            val toneGenerator = ToneGenerator(AudioManager.STREAM_NOTIFICATION, 100)
-            toneGenerator.startTone(ToneGenerator.TONE_PROP_BEEP, 500)
-
             Thread {
-                Thread.sleep(1000)
-                toneGenerator.release()
+                try {
+                    val toneGen = ToneGenerator(AudioManager.STREAM_NOTIFICATION, 100)
+                    toneGen.startTone(ToneGenerator.TONE_PROP_BEEP, 150)
+                    Thread.sleep(200) // Wait for tone to finish
+                    toneGen.release()
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error in tone thread", e)
+                }
             }.start()
-
-            Log.d(TAG, "Ping tone played successfully")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to play ping sound: ${e.message}")
+            Log.e(TAG, "Error playing tone", e)
         }
+
+        // Build payload (echo timestamp)
+        val payload = PacketWriter()
+        payload.writeU64(timestamp)
+
+        // Write response packet
+        writer.writeU8(MessageOpcode.PING_RESPONSE.toInt() and 0xFF)
+        writer.writeU16(payload.toByteArray().size)
+        writer.writeBytes(payload.toByteArray())
     }
 }

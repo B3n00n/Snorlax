@@ -48,6 +48,11 @@ class PacketWriter {
         dataStream.write(bytes)
     }
 
+    @Throws(IOException::class)
+    fun writeBytes(bytes: ByteArray) {
+        dataStream.write(bytes)
+    }
+
     fun toByteArray(): ByteArray {
         dataStream.flush()
         return byteStream.toByteArray()
