@@ -2,28 +2,38 @@ package com.b3n00n.snorlax.handlers.impl
 
 import android.util.Log
 import com.b3n00n.snorlax.handlers.CommandHandler
-import com.b3n00n.snorlax.handlers.MessageHandler
-import com.b3n00n.snorlax.protocol.MessageType
-import com.b3n00n.snorlax.protocol.PacketReader
+import com.b3n00n.snorlax.handlers.ServerPacketHandler
+import com.b3n00n.snorlax.protocol.ServerPacket
 import com.b3n00n.snorlax.utils.ShellExecutor
 
-class ShellCommandHandler : MessageHandler {
+class ShellCommandHandler : ServerPacketHandler {
     companion object {
         private const val TAG = "ShellCommandHandler"
     }
 
-    override val messageType: Byte = MessageType.EXECUTE_SHELL
+    override fun canHandle(packet: ServerPacket): Boolean {
+        return packet is ServerPacket.ExecuteShell
+    }
 
-    override fun handle(reader: PacketReader, commandHandler: CommandHandler) {
-        val command = reader.readString()
-        Log.d(TAG, "Executing shell command: $command")
+    override fun handle(packet: ServerPacket, commandHandler: CommandHandler) {
+        if (packet !is ServerPacket.ExecuteShell) return
+
+        Log.d(TAG, "Executing shell command: ${packet.command}")
 
         try {
-            val output = ShellExecutor.execute(command)
-            commandHandler.sendResponse(true, output)
+            val output = ShellExecutor.execute(packet.command)
+            commandHandler.sendShellExecutionResponse(
+                success = true,
+                output = output,
+                exitCode = 0
+            )
         } catch (e: Exception) {
             Log.e(TAG, "Error executing shell command", e)
-            commandHandler.sendResponse(false, "Error: ${e.message}")
+            commandHandler.sendShellExecutionResponse(
+                success = false,
+                output = "Error: ${e.message}",
+                exitCode = -1
+            )
         }
     }
 }

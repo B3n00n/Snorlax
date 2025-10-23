@@ -18,6 +18,12 @@ class PacketReader(inputStream: InputStream) {
     fun readU32(): Long = dataStream.readInt().toLong() and 0xFFFFFFFFL
 
     @Throws(IOException::class)
+    fun readU64(): Long = dataStream.readLong()
+
+    @Throws(IOException::class)
+    fun readI32(): Int = dataStream.readInt()
+
+    @Throws(IOException::class)
     fun readString(): String {
         val length = readU32()
         if (length > Int.MAX_VALUE) {

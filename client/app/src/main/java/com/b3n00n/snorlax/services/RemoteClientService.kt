@@ -25,9 +25,6 @@ import com.b3n00n.snorlax.handlers.CommandHandler
 import com.b3n00n.snorlax.models.DeviceInfo
 import com.b3n00n.snorlax.network.ConnectionManager
 import com.b3n00n.snorlax.network.NetworkClient
-import com.b3n00n.snorlax.protocol.MessageType
-import com.b3n00n.snorlax.protocol.PacketWriter
-import java.io.IOException
 
 class RemoteClientService : Service(), ConnectionManager.ConnectionListener {
     companion object {
@@ -152,9 +149,7 @@ class RemoteClientService : Service(), ConnectionManager.ConnectionListener {
             override fun run() {
                 try {
                     if (networkClient?.isConnected() == true) {
-                        val writer = PacketWriter()
-                        writer.writeU8(MessageType.HEARTBEAT.toInt())
-                        networkClient!!.sendData(writer.toByteArray())
+                        commandHandler?.sendHeartbeat()
                         Log.d(TAG, "Heartbeat sent")
                     }
                     heartbeatHandler?.postDelayed(this, heartbeatInterval)
@@ -217,15 +212,9 @@ class RemoteClientService : Service(), ConnectionManager.ConnectionListener {
     private fun sendDeviceInfo() {
         try {
             val deviceInfo = DeviceInfo(this)
-
-            val writer = PacketWriter()
-            writer.writeU8(MessageType.DEVICE_CONNECTED.toInt())
-            writer.writeString(deviceInfo.model)
-            writer.writeString(deviceInfo.serial)
-
-            networkClient!!.sendData(writer.toByteArray())
+            commandHandler?.sendDeviceConnected(deviceInfo.model, deviceInfo.serial)
             Log.d(TAG, "Sent device info")
-        } catch (e: IOException) {
+        } catch (e: Exception) {
             Log.e(TAG, "Error sending device info", e)
         }
     }

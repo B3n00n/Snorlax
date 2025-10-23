@@ -25,6 +25,16 @@ class PacketWriter {
     }
 
     @Throws(IOException::class)
+    fun writeU64(value: Long) {
+        dataStream.writeLong(value)
+    }
+
+    @Throws(IOException::class)
+    fun writeI32(value: Int) {
+        dataStream.writeInt(value)
+    }
+
+    @Throws(IOException::class)
     fun writeString(value: String) {
         val bytes = value.toByteArray(StandardCharsets.UTF_8)
         writeU32(bytes.size.toLong())
@@ -38,7 +48,10 @@ class PacketWriter {
         dataStream.write(bytes)
     }
 
-    fun toByteArray(): ByteArray = byteStream.toByteArray()
+    fun toByteArray(): ByteArray {
+        dataStream.flush()
+        return byteStream.toByteArray()
+    }
 
     fun clear() {
         byteStream.reset()

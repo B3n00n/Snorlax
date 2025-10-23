@@ -4,9 +4,9 @@ import android.content.Context
 import android.util.Log
 import com.b3n00n.snorlax.handlers.impl.*
 import com.b3n00n.snorlax.network.ConnectionManager
-import com.b3n00n.snorlax.protocol.MessageType
+import com.b3n00n.snorlax.protocol.ClientPacket
 import com.b3n00n.snorlax.protocol.PacketReader
-import com.b3n00n.snorlax.protocol.PacketWriter
+import com.b3n00n.snorlax.protocol.ServerPacket
 import java.io.ByteArrayInputStream
 import java.io.IOException
 
@@ -18,7 +18,7 @@ class CommandHandler(
         private const val TAG = "CommandHandler"
     }
 
-    private val handlers = mutableMapOf<Byte, MessageHandler>()
+    private val handlers = mutableListOf<ServerPacketHandler>()
 
     init {
         registerHandlers()
@@ -33,13 +33,14 @@ class CommandHandler(
         registerHandler(DownloadAndInstallApkHandler(context))
         registerHandler(ShutdownHandler(context))
         registerHandler(UninstallAppHandler(context))
-        registerHandler(VolumeHandler.SetVolumeHandler(context))
-        registerHandler(VolumeHandler.GetVolumeHandler(context))
+        registerHandler(SetVolumeHandler(context))
+        registerHandler(GetVolumeHandler(context))
         registerHandler(InstallLocalApkHandler(context))
     }
 
-    private fun registerHandler(handler: MessageHandler) {
-        handlers[handler.messageType] = handler
+    private fun registerHandler(handler: ServerPacketHandler) {
+        handlers.add(handler)
+        Log.d(TAG, "Registered handler: ${handler.javaClass.simpleName}")
     }
 
     fun handleMessage(data: ByteArray) {
@@ -47,64 +48,89 @@ class CommandHandler(
             val inputStream = ByteArrayInputStream(data)
             val reader = PacketReader(inputStream)
 
-            val messageType = reader.readU8().toByte()
-            val handler = handlers[messageType]
+            val opcode = reader.readU8().toByte()
+            val length = reader.readU16()
 
+            Log.d(TAG, "Received packet: opcode=0x${opcode.toString(16)}, length=$length")
+
+            val packet = ServerPacket.fromReader(opcode, reader)
+
+            val handler = handlers.find { it.canHandle(packet) }
             if (handler != null) {
-                handler.handle(reader, this)
+                Log.d(TAG, "Routing to handler: ${handler.javaClass.simpleName}")
+                handler.handle(packet, this)
             } else {
-                Log.w(TAG, "Unknown message type: $messageType")
-                sendError("Unknown message type: $messageType")
+                Log.w(TAG, "No handler registered for packet type: ${packet.javaClass.simpleName}")
+                sendError("No handler for command")
             }
         } catch (e: IOException) {
             Log.e(TAG, "Error handling message", e)
             sendError("Error handling message: ${e.message}")
+        } catch (e: Exception) {
+            Log.e(TAG, "Unexpected error", e)
+            sendError("Unexpected error: ${e.message}")
         }
     }
 
-    fun sendResponse(success: Boolean, message: String) {
+    fun sendPacket(packet: ClientPacket) {
         try {
-            val writer = PacketWriter()
-            writer.writeU8(MessageType.COMMAND_RESPONSE.toInt())
-            writer.writeU8(if (success) 1 else 0)
-            writer.writeString(message)
-            connectionManager.sendData(writer.toByteArray())
+            val data = packet.toByteArray()
+            connectionManager.sendData(data)
+            Log.d(TAG, "Sent packet: opcode=0x${packet.opcode.toString(16)}")
         } catch (e: IOException) {
-            Log.e(TAG, "Error sending response", e)
+            Log.e(TAG, "Error sending packet", e)
         }
+    }
+
+    fun sendDeviceConnected(model: String, serial: String) {
+        sendPacket(ClientPacket.DeviceConnected(model, serial))
+    }
+
+    fun sendHeartbeat() {
+        sendPacket(ClientPacket.Heartbeat)
+    }
+
+    fun sendBatteryStatus(level: Int, isCharging: Boolean) {
+        sendPacket(ClientPacket.BatteryStatus(level, isCharging))
+    }
+
+    fun sendVolumeStatus(percentage: Int, current: Int, max: Int) {
+        sendPacket(ClientPacket.VolumeStatus(percentage, current, max))
     }
 
     fun sendError(errorMessage: String) {
-        try {
-            val writer = PacketWriter()
-            writer.writeU8(MessageType.ERROR.toInt())
-            writer.writeString(errorMessage)
-            connectionManager.sendData(writer.toByteArray())
-        } catch (e: IOException) {
-            Log.e(TAG, "Error sending error message", e)
-        }
+        sendPacket(ClientPacket.Error(errorMessage))
     }
 
-    fun sendBatteryStatus(
-        headset: Int,
-        isCharging: Boolean
-    ) {
-        try {
-            val writer = PacketWriter()
-            writer.writeU8(MessageType.BATTERY_STATUS.toInt())
-            writer.writeU8(headset)
-            writer.writeU8(if (isCharging) 1 else 0)
-            connectionManager.sendData(writer.toByteArray())
-        } catch (e: IOException) {
-            Log.e(TAG, "Error sending battery status", e)
-        }
+    fun sendLaunchAppResponse(success: Boolean, message: String) {
+        sendPacket(ClientPacket.LaunchAppResponse(success, message))
     }
 
-    fun sendData(data: ByteArray) {
-        try {
-            connectionManager.sendData(data)
-        } catch (e: IOException) {
-            Log.e(TAG, "Error sending data", e)
-        }
+    fun sendShellExecutionResponse(success: Boolean, output: String, exitCode: Int) {
+        sendPacket(ClientPacket.ShellExecutionResponse(success, output, exitCode))
+    }
+
+    fun sendInstalledAppsResponse(apps: List<String>) {
+        sendPacket(ClientPacket.InstalledAppsResponse(apps))
+    }
+
+    fun sendPingResponse(timestamp: Long) {
+        sendPacket(ClientPacket.PingResponse(timestamp))
+    }
+
+    fun sendApkInstallResponse(success: Boolean, message: String) {
+        sendPacket(ClientPacket.ApkInstallResponse(success, message))
+    }
+
+    fun sendUninstallAppResponse(success: Boolean, message: String) {
+        sendPacket(ClientPacket.UninstallAppResponse(success, message))
+    }
+
+    fun sendShutdownResponse() {
+        sendPacket(ClientPacket.ShutdownResponse)
+    }
+
+    fun sendVolumeSetResponse(success: Boolean, actualLevel: Int) {
+        sendPacket(ClientPacket.VolumeSetResponse(success, actualLevel))
     }
 }

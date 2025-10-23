@@ -15,9 +15,8 @@ import android.os.Environment
 import android.util.Log
 import androidx.core.content.ContextCompat
 import com.b3n00n.snorlax.handlers.CommandHandler
-import com.b3n00n.snorlax.handlers.MessageHandler
-import com.b3n00n.snorlax.protocol.MessageType
-import com.b3n00n.snorlax.protocol.PacketReader
+import com.b3n00n.snorlax.handlers.ServerPacketHandler
+import com.b3n00n.snorlax.protocol.ServerPacket
 import com.b3n00n.snorlax.utils.QuestApkInstaller
 import kotlinx.coroutines.*
 import java.io.File
@@ -26,26 +25,31 @@ import java.net.URL
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
-class DownloadAndInstallApkHandler(private val context: Context) : MessageHandler {
+class DownloadAndInstallApkHandler(private val context: Context) : ServerPacketHandler {
     companion object {
         private const val TAG = "DownloadAndInstallApkHandler"
         private const val INTERNET_CHECK_TIMEOUT = 5000
         private const val UNINSTALL_TIMEOUT_MS = 10000L
     }
 
-    override val messageType: Byte = MessageType.DOWNLOAD_AND_INSTALL_APK
     private val downloadScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var downloadReceiver: BroadcastReceiver? = null
 
-    override fun handle(reader: PacketReader, commandHandler: CommandHandler) {
-        val apkUrl = reader.readString()
+    override fun canHandle(packet: ServerPacket): Boolean {
+        return packet is ServerPacket.InstallApk
+    }
+
+    override fun handle(packet: ServerPacket, commandHandler: CommandHandler) {
+        if (packet !is ServerPacket.InstallApk) return
+
+        val apkUrl = packet.url
         Log.d(TAG, "Downloading and installing APK from: $apkUrl")
 
         downloadScope.launch {
             val hasInternet = checkInternetConnection()
             withContext(Dispatchers.Main) {
                 if (!hasInternet) {
-                    commandHandler.sendResponse(
+                    commandHandler.sendApkInstallResponse(
                         false,
                         "No internet connection available. Cannot download from: $apkUrl"
                     )
@@ -55,7 +59,7 @@ class DownloadAndInstallApkHandler(private val context: Context) : MessageHandle
                         downloadAndInstallApk(apkUrl, commandHandler)
                     } catch (e: Exception) {
                         Log.e(TAG, "Error downloading/installing APK", e)
-                        commandHandler.sendResponse(false, "Error: ${e.message}")
+                        commandHandler.sendApkInstallResponse(false, "Error: ${e.message}")
                     }
                 }
             }
@@ -103,7 +107,7 @@ class DownloadAndInstallApkHandler(private val context: Context) : MessageHandle
 
         // Enqueue download
         val downloadId = downloadManager.enqueue(request)
-        commandHandler.sendResponse(true, "Download started. ID: $downloadId")
+        commandHandler.sendApkInstallResponse(true, "Download started. ID: $downloadId")
 
         // Monitor download progress
         downloadScope.launch {
@@ -144,7 +148,7 @@ class DownloadAndInstallApkHandler(private val context: Context) : MessageHandle
                                 }
                             } else {
                                 Log.e(TAG, "Downloaded file not found at expected location")
-                                commandHandler.sendResponse(false, "Downloaded file not found")
+                                commandHandler.sendApkInstallResponse(false, "Downloaded file not found")
                             }
                         }
 
@@ -167,7 +171,7 @@ class DownloadAndInstallApkHandler(private val context: Context) : MessageHandle
                             }
 
                             Log.e(TAG, "Download failed: $errorMessage")
-                            commandHandler.sendResponse(false, "Download failed: $errorMessage")
+                            commandHandler.sendApkInstallResponse(false, "Download failed: $errorMessage")
                         }
 
                         DownloadManager.STATUS_RUNNING -> {
@@ -215,7 +219,7 @@ class DownloadAndInstallApkHandler(private val context: Context) : MessageHandle
             // Get package info from the downloaded APK
             val packageInfo = context.packageManager.getPackageArchiveInfo(apkFile.absolutePath, 0)
             if (packageInfo == null) {
-                commandHandler.sendResponse(false, "Invalid APK file")
+                commandHandler.sendApkInstallResponse(false, "Invalid APK file")
                 apkFile.delete()
                 return
             }
@@ -233,7 +237,7 @@ class DownloadAndInstallApkHandler(private val context: Context) : MessageHandle
                 val existingVersionCode = existingInfo.versionCode
 
                 Log.d(TAG, "Found existing installation: $packageName v$existingVersionName (code: $existingVersionCode)")
-                commandHandler.sendResponse(
+                commandHandler.sendApkInstallResponse(
                     true,
                     "Found existing $packageName v$existingVersionName, uninstalling first..."
                 )
@@ -251,14 +255,14 @@ class DownloadAndInstallApkHandler(private val context: Context) : MessageHandle
 
                     if (uninstallSuccess) {
                         Log.d(TAG, "Successfully uninstalled old version of $packageName")
-                        commandHandler.sendResponse(
+                        commandHandler.sendApkInstallResponse(
                             true,
                             "Old version removed. Installing $packageName v$versionName..."
                         )
                         delay(1000) // Give system a moment to clean up
                     } else {
                         Log.w(TAG, "Failed to uninstall old version, proceeding with installation anyway")
-                        commandHandler.sendResponse(
+                        commandHandler.sendApkInstallResponse(
                             true,
                             "Proceeding with installation of $packageName v$versionName..."
                         )
@@ -268,7 +272,7 @@ class DownloadAndInstallApkHandler(private val context: Context) : MessageHandle
                 }
             } else {
                 // No existing installation, proceed directly with install
-                commandHandler.sendResponse(
+                commandHandler.sendApkInstallResponse(
                     true,
                     "Installing new package: $packageName v$versionName..."
                 )
@@ -277,7 +281,7 @@ class DownloadAndInstallApkHandler(private val context: Context) : MessageHandle
 
         } catch (e: Exception) {
             Log.e(TAG, "Error processing downloaded APK", e)
-            commandHandler.sendResponse(false, "Error processing APK: ${e.message}")
+            commandHandler.sendApkInstallResponse(false, "Error processing APK: ${e.message}")
             apkFile.delete()
         }
     }
@@ -381,7 +385,7 @@ class DownloadAndInstallApkHandler(private val context: Context) : MessageHandle
 
             when (val result = QuestApkInstaller.installApkAsync(context, apkFile, autoGrantPermissions = true)) {
                 is QuestApkInstaller.InstallResult.Success -> {
-                    commandHandler.sendResponse(true, result.message)
+                    commandHandler.sendApkInstallResponse(true, result.message)
 
                     downloadScope.launch {
                         delay(5000)
@@ -394,13 +398,13 @@ class DownloadAndInstallApkHandler(private val context: Context) : MessageHandle
                     }
                 }
                 is QuestApkInstaller.InstallResult.Error -> {
-                    commandHandler.sendResponse(false, result.message)
+                    commandHandler.sendApkInstallResponse(false, result.message)
                 }
             }
 
         } catch (e: Exception) {
             Log.e(TAG, "Error installing APK", e)
-            commandHandler.sendResponse(
+            commandHandler.sendApkInstallResponse(
                 false,
                 "Installation failed. APK saved to: ${apkFile.absolutePath}"
             )

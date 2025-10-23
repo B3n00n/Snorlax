@@ -3,53 +3,47 @@ package com.b3n00n.snorlax.handlers.impl
 import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
-import android.os.Build
 import android.util.Log
 import com.b3n00n.snorlax.handlers.CommandHandler
-import com.b3n00n.snorlax.handlers.MessageHandler
-import com.b3n00n.snorlax.protocol.MessageType
-import com.b3n00n.snorlax.protocol.PacketReader
+import com.b3n00n.snorlax.handlers.ServerPacketHandler
+import com.b3n00n.snorlax.protocol.ServerPacket
 import com.b3n00n.snorlax.receivers.DeviceOwnerReceiver
 
-class ShutdownHandler(private val context: Context) : MessageHandler {
+class ShutdownHandler(private val context: Context) : ServerPacketHandler {
     companion object {
         private const val TAG = "ShutdownHandler"
     }
 
-    override val messageType: Byte = MessageType.SHUTDOWN_DEVICE
+    override fun canHandle(packet: ServerPacket): Boolean {
+        return packet is ServerPacket.Shutdown
+    }
 
-    override fun handle(reader: PacketReader, commandHandler: CommandHandler) {
-        val action = reader.readString() // "shutdown" or "restart"
-        Log.d(TAG, "Received $action command")
+    override fun handle(packet: ServerPacket, commandHandler: CommandHandler) {
+        if (packet !is ServerPacket.Shutdown) return
+
+        Log.d(TAG, "Shutdown/restart requested")
 
         val devicePolicyManager = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
         val adminComponent = ComponentName(context, DeviceOwnerReceiver::class.java)
 
         // Check if we're device owner
         if (!devicePolicyManager.isDeviceOwnerApp(context.packageName)) {
-            commandHandler.sendResponse(false, "App is not device owner. Cannot $action device.")
+            commandHandler.sendError("App is not device owner. Cannot reboot device.")
             return
         }
 
         try {
-            when (action) {
-                "shutdown" -> {
-                    commandHandler.sendResponse(true, "Shutting down device...")
-                    Thread.sleep(1000)
-                    devicePolicyManager.reboot(adminComponent)
-                }
-                "restart" -> {
-                    commandHandler.sendResponse(true, "Restarting device...")
-                    Thread.sleep(1000)
-                    devicePolicyManager.reboot(adminComponent)
-                }
-                else -> {
-                    commandHandler.sendResponse(false, "Unknown action: $action. Use 'shutdown' or 'restart'")
-                }
-            }
+            // Send response first
+            commandHandler.sendShutdownResponse()
+
+            // Give time for response to be sent
+            Thread.sleep(1000)
+
+            // Reboot device
+            devicePolicyManager.reboot(adminComponent)
         } catch (e: Exception) {
-            Log.e(TAG, "Error executing $action", e)
-            commandHandler.sendResponse(false, "Failed to $action: ${e.message}")
+            Log.e(TAG, "Error executing shutdown", e)
+            // Already sent response, just log error
         }
     }
 }

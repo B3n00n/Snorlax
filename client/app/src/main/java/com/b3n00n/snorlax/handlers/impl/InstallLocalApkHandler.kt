@@ -11,9 +11,8 @@ import android.os.Build
 import android.util.Log
 import androidx.core.content.ContextCompat
 import com.b3n00n.snorlax.handlers.CommandHandler
-import com.b3n00n.snorlax.handlers.MessageHandler
-import com.b3n00n.snorlax.protocol.MessageType
-import com.b3n00n.snorlax.protocol.PacketReader
+import com.b3n00n.snorlax.handlers.ServerPacketHandler
+import com.b3n00n.snorlax.protocol.ServerPacket
 import com.b3n00n.snorlax.utils.QuestApkInstaller
 import kotlinx.coroutines.*
 import java.io.File
@@ -23,7 +22,7 @@ import java.net.URL
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
-class InstallLocalApkHandler(private val context: Context) : MessageHandler {
+class InstallLocalApkHandler(private val context: Context) : ServerPacketHandler {
     companion object {
         private const val TAG = "InstallLocalApkHandler"
         private const val BUFFER_SIZE = 8192
@@ -32,14 +31,19 @@ class InstallLocalApkHandler(private val context: Context) : MessageHandler {
         private const val UNINSTALL_TIMEOUT_MS = 10000L
     }
 
-    override val messageType: Byte = MessageType.INSTALL_LOCAL_APK
     private val downloadScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
-    override fun handle(reader: PacketReader, commandHandler: CommandHandler) {
-        val localUrl = reader.readString()
+    override fun canHandle(packet: ServerPacket): Boolean {
+        return packet is ServerPacket.InstallLocalApk
+    }
+
+    override fun handle(packet: ServerPacket, commandHandler: CommandHandler) {
+        if (packet !is ServerPacket.InstallLocalApk) return
+
+        val localUrl = packet.filename
         Log.d(TAG, "Installing local APK from: $localUrl")
 
-        commandHandler.sendResponse(true, "Starting local APK download...")
+        commandHandler.sendApkInstallResponse(true, "Starting local APK download...")
 
         downloadScope.launch {
             downloadAndInstallLocalApk(localUrl, commandHandler)
@@ -76,7 +80,7 @@ class InstallLocalApkHandler(private val context: Context) : MessageHandler {
             val responseCode = connection.responseCode
             if (responseCode != HttpURLConnection.HTTP_OK) {
                 withContext(Dispatchers.Main) {
-                    commandHandler.sendResponse(false, "HTTP error: $responseCode")
+                    commandHandler.sendApkInstallResponse(false, "HTTP error: $responseCode")
                 }
                 return@withContext
             }
@@ -124,7 +128,7 @@ class InstallLocalApkHandler(private val context: Context) : MessageHandler {
             // Verify the downloaded file
             if (!tempFile.exists() || tempFile.length() == 0L) {
                 withContext(Dispatchers.Main) {
-                    commandHandler.sendResponse(false, "Downloaded file is empty or missing")
+                    commandHandler.sendApkInstallResponse(false, "Downloaded file is empty or missing")
                 }
                 tempFile.delete()
                 return@withContext
@@ -134,7 +138,7 @@ class InstallLocalApkHandler(private val context: Context) : MessageHandler {
             val packageInfo = context.packageManager.getPackageArchiveInfo(tempFile.absolutePath, 0)
             if (packageInfo == null) {
                 withContext(Dispatchers.Main) {
-                    commandHandler.sendResponse(false, "Invalid APK file")
+                    commandHandler.sendApkInstallResponse(false, "Invalid APK file")
                 }
                 tempFile.delete()
                 return@withContext
@@ -153,7 +157,7 @@ class InstallLocalApkHandler(private val context: Context) : MessageHandler {
                 Log.d(TAG, "Found existing installation: $packageName v$existingVersionName (code: $existingVersion)")
 
                 withContext(Dispatchers.Main) {
-                    commandHandler.sendResponse(
+                    commandHandler.sendApkInstallResponse(
                         true,
                         "Uninstalling existing $packageName v$existingVersionName..."
                     )
@@ -165,7 +169,7 @@ class InstallLocalApkHandler(private val context: Context) : MessageHandler {
                 if (uninstallSuccess) {
                     Log.d(TAG, "Successfully uninstalled old version of $packageName")
                     withContext(Dispatchers.Main) {
-                        commandHandler.sendResponse(
+                        commandHandler.sendApkInstallResponse(
                             true,
                             "Old version removed. Installing $packageName v$versionName..."
                         )
@@ -174,7 +178,7 @@ class InstallLocalApkHandler(private val context: Context) : MessageHandler {
                 } else {
                     Log.w(TAG, "Failed to uninstall old version, proceeding with installation anyway")
                     withContext(Dispatchers.Main) {
-                        commandHandler.sendResponse(
+                        commandHandler.sendApkInstallResponse(
                             true,
                             "Proceeding with installation of $packageName v$versionName..."
                         )
@@ -183,7 +187,7 @@ class InstallLocalApkHandler(private val context: Context) : MessageHandler {
             } else {
                 Log.d(TAG, "No existing installation found for $packageName")
                 withContext(Dispatchers.Main) {
-                    commandHandler.sendResponse(
+                    commandHandler.sendApkInstallResponse(
                         true,
                         "Installing new package: $packageName v$versionName..."
                     )
@@ -198,13 +202,13 @@ class InstallLocalApkHandler(private val context: Context) : MessageHandler {
                     Log.d(TAG, "Installation completed: ${result.message}")
 
                     withContext(Dispatchers.Main) {
-                        commandHandler.sendResponse(true, result.message)
+                        commandHandler.sendApkInstallResponse(true, result.message)
                     }
                 }
                 is QuestApkInstaller.InstallResult.Error -> {
                     Log.e(TAG, "Installation failed: ${result.message}")
                     withContext(Dispatchers.Main) {
-                        commandHandler.sendResponse(false, "Installation failed: ${result.message}")
+                        commandHandler.sendApkInstallResponse(false, "Installation failed: ${result.message}")
                     }
                 }
             }
@@ -223,7 +227,7 @@ class InstallLocalApkHandler(private val context: Context) : MessageHandler {
         } catch (e: Exception) {
             Log.e(TAG, "Error downloading/installing local APK", e)
             withContext(Dispatchers.Main) {
-                commandHandler.sendResponse(false, "Error: ${e.message}")
+                commandHandler.sendApkInstallResponse(false, "Error: ${e.message}")
             }
         } finally {
             try {

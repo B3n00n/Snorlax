@@ -4,35 +4,37 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import com.b3n00n.snorlax.handlers.CommandHandler
-import com.b3n00n.snorlax.handlers.MessageHandler
-import com.b3n00n.snorlax.protocol.MessageType
-import com.b3n00n.snorlax.protocol.PacketReader
+import com.b3n00n.snorlax.handlers.ServerPacketHandler
+import com.b3n00n.snorlax.protocol.ServerPacket
 
-class LaunchAppHandler(private val context: Context) : MessageHandler {
+class LaunchAppHandler(private val context: Context) : ServerPacketHandler {
     companion object {
         private const val TAG = "LaunchAppHandler"
     }
 
-    override val messageType: Byte = MessageType.LAUNCH_APP
+    override fun canHandle(packet: ServerPacket): Boolean {
+        return packet is ServerPacket.LaunchApp
+    }
 
-    override fun handle(reader: PacketReader, commandHandler: CommandHandler) {
-        val packageName = reader.readString()
-        Log.d(TAG, "Launching app: $packageName")
+    override fun handle(packet: ServerPacket, commandHandler: CommandHandler) {
+        if (packet !is ServerPacket.LaunchApp) return
+
+        Log.d(TAG, "Launching app: ${packet.packageName}")
 
         try {
             val pm = context.packageManager
-            val launchIntent = pm.getLaunchIntentForPackage(packageName)
+            val launchIntent = pm.getLaunchIntentForPackage(packet.packageName)
 
             if (launchIntent != null) {
                 launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 context.startActivity(launchIntent)
-                commandHandler.sendResponse(true, "Launched $packageName")
+                commandHandler.sendLaunchAppResponse(true, "Launched ${packet.packageName}")
             } else {
-                commandHandler.sendResponse(false, "App not found: $packageName")
+                commandHandler.sendLaunchAppResponse(false, "App not found: ${packet.packageName}")
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error launching app", e)
-            commandHandler.sendResponse(false, "Error: ${e.message}")
+            commandHandler.sendLaunchAppResponse(false, "Error: ${e.message}")
         }
     }
 }
