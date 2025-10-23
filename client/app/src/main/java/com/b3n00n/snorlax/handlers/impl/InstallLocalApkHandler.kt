@@ -75,13 +75,6 @@ class InstallLocalApkHandler(private val context: Context) : IPacketHandler {
 
             connection.disconnect()
 
-            // Verify APK
-            val packageInfo = context.packageManager.getPackageArchiveInfo(tempFile.absolutePath, 0)
-            if (packageInfo == null) {
-                tempFile.delete()
-                return@withContext false to "Invalid APK"
-            }
-
             // Install
             when (val result = QuestApkInstaller.installApkAsync(context, tempFile, autoGrantPermissions = true)) {
                 is QuestApkInstaller.InstallResult.Success -> {
