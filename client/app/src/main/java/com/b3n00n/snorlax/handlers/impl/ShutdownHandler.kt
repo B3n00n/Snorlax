@@ -26,13 +26,8 @@ class ShutdownHandler(private val context: Context) : IPacketHandler {
 
         Log.d(TAG, "Shutdown/reboot requested")
 
-        // Send response first (empty payload)
-        writer.writeU8(MessageOpcode.SHUTDOWN_RESPONSE.toInt() and 0xFF)
-        writer.writeU16(0)
-
-        // Schedule reboot after response is sent
         Thread {
-            Thread.sleep(1000)
+            Thread.sleep(500)
             try {
                 val devicePolicyManager = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
                 val adminComponent = ComponentName(context, DeviceOwnerReceiver::class.java)
