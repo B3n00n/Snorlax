@@ -5,11 +5,6 @@ import android.util.Log
 import com.b3n00n.snorlax.protocol.PacketReader
 import com.b3n00n.snorlax.protocol.PacketWriter
 
-/**
- * Registry that maps opcodes to packet handlers.
- *
- * Automatically discovers handlers via @PacketHandler annotation.
- */
 class HandlerRegistry(private val context: Context) {
     companion object {
         private const val TAG = "HandlerRegistry"
@@ -17,9 +12,6 @@ class HandlerRegistry(private val context: Context) {
 
     private val handlers = mutableMapOf<Byte, IPacketHandler>()
 
-    /**
-     * Register a handler. Must have @PacketHandler annotation.
-     */
     fun register(handler: IPacketHandler) {
         val annotation = handler.javaClass.getAnnotation(PacketHandler::class.java)
         if (annotation != null) {
@@ -31,13 +23,6 @@ class HandlerRegistry(private val context: Context) {
         }
     }
 
-    /**
-     * Handle an incoming packet by dispatching to the appropriate handler.
-     *
-     * @param opcode The packet opcode
-     * @param reader Reader positioned at the start of the payload
-     * @return The response packet bytes, or null if no handler or no response
-     */
     fun handle(opcode: Byte, reader: PacketReader): ByteArray? {
         val handler = handlers[opcode]
         if (handler == null) {
@@ -55,8 +40,5 @@ class HandlerRegistry(private val context: Context) {
         }
     }
 
-    /**
-     * Get the number of registered handlers
-     */
     fun getHandlerCount(): Int = handlers.size
 }

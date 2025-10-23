@@ -9,12 +9,6 @@ import com.b3n00n.snorlax.protocol.PacketReader
 import com.b3n00n.snorlax.protocol.PacketWriter
 import java.io.ByteArrayInputStream
 
-/**
- * Central message dispatcher using annotation-based packet routing.
- *
- * Handles incoming packets from server and provides helper methods for
- * sending client-initiated packets.
- */
 class MessageDispatcher(
     private val context: Context,
     private val connectionManager: ConnectionManager
@@ -31,8 +25,6 @@ class MessageDispatcher(
     }
 
     private fun registerHandlers() {
-        // Register all command handlers (SERVER → CLIENT)
-        // Each handler is annotated with @PacketHandler(opcode)
         registry.register(LaunchAppHandler(context))
         registry.register(ExecuteShellHandler())
         registry.register(RequestBatteryHandler(context))
@@ -46,26 +38,18 @@ class MessageDispatcher(
         registry.register(GetVolumeHandler(context))
     }
 
-    /**
-     * Handle incoming packet from server.
-     *
-     * Wire format: [Opcode: u8][Length: u16 BE][Payload]
-     */
     fun handleIncoming(data: ByteArray) {
         try {
             val inputStream = ByteArrayInputStream(data)
             val reader = PacketReader(inputStream)
 
-            // Read header
             val opcode = reader.readU8().toByte()
             val length = reader.readU16()
 
             Log.d(TAG, "Received: opcode=0x${String.format("%02X", opcode)}, length=$length")
 
-            // Dispatch to handler
             val responseBytes = registry.handle(opcode, reader)
 
-            // Send response if handler produced one
             if (responseBytes != null && responseBytes.isNotEmpty()) {
                 connectionManager.sendData(responseBytes)
                 Log.d(TAG, "Sent response: ${responseBytes.size} bytes")
@@ -80,9 +64,6 @@ class MessageDispatcher(
     // CLIENT-INITIATED PACKETS
     // =============================================================================
 
-    /**
-     * Send DeviceConnected packet (0x01)
-     */
     fun sendDeviceConnected(model: String, serial: String) {
         try {
             val payload = PacketWriter()
@@ -101,9 +82,6 @@ class MessageDispatcher(
         }
     }
 
-    /**
-     * Send Heartbeat packet (0x02)
-     */
     fun sendHeartbeat() {
         try {
             val packet = PacketWriter()
@@ -116,9 +94,6 @@ class MessageDispatcher(
         }
     }
 
-    /**
-     * Send Error packet (0x05)
-     */
     private fun sendError(message: String) {
         try {
             val payload = PacketWriter()
