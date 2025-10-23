@@ -26,8 +26,7 @@ object MessageOpcode {
     const val PING_RESPONSE: Byte = 0x13
     const val APK_INSTALL_RESPONSE: Byte = 0x14
     const val UNINSTALL_APP_RESPONSE: Byte = 0x15
-    const val SHUTDOWN_RESPONSE: Byte = 0x16
-    const val VOLUME_SET_RESPONSE: Byte = 0x17
+    const val VOLUME_SET_RESPONSE: Byte = 0x16
 
     // =============================================================================
     // SERVER → CLIENT (Commands from server) - 0x40-0x4B
