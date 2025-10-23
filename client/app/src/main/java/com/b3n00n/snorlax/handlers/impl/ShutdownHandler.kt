@@ -1,13 +1,15 @@
 package com.b3n00n.snorlax.handlers.impl
 
+import android.app.admin.DevicePolicyManager
+import android.content.ComponentName
 import android.content.Context
-import android.os.PowerManager
 import android.util.Log
 import com.b3n00n.snorlax.handlers.IPacketHandler
 import com.b3n00n.snorlax.handlers.PacketHandler
 import com.b3n00n.snorlax.protocol.MessageOpcode
 import com.b3n00n.snorlax.protocol.PacketReader
 import com.b3n00n.snorlax.protocol.PacketWriter
+import com.b3n00n.snorlax.receivers.DeviceOwnerReceiver
 
 /**
  * Handles Shutdown command (0x48): empty payload
@@ -32,8 +34,16 @@ class ShutdownHandler(private val context: Context) : IPacketHandler {
         Thread {
             Thread.sleep(1000)
             try {
-                val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
-                powerManager.reboot(null)
+                val devicePolicyManager = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+                val adminComponent = ComponentName(context, DeviceOwnerReceiver::class.java)
+
+                // Check if the app is device owner
+                if (devicePolicyManager.isDeviceOwnerApp(context.packageName)) {
+                    Log.d(TAG, "Rebooting device using DevicePolicyManager")
+                    devicePolicyManager.reboot(adminComponent)
+                } else {
+                    Log.e(TAG, "App is not device owner, cannot reboot device")
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "Error rebooting device", e)
             }
