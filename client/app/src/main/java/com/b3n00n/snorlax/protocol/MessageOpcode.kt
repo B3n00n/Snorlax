@@ -36,7 +36,6 @@ object MessageOpcode {
     const val EXECUTE_SHELL: Byte = 0x41
     const val REQUEST_BATTERY: Byte = 0x42
     const val REQUEST_INSTALLED_APPS: Byte = 0x43
-    const val REQUEST_DEVICE_INFO: Byte = 0x44
     const val PING: Byte = 0x45
     const val INSTALL_APK: Byte = 0x46
     const val INSTALL_LOCAL_APK: Byte = 0x47

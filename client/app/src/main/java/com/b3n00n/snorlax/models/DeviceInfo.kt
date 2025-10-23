@@ -8,9 +8,6 @@ import android.provider.Settings
 class DeviceInfo(private val context: Context? = null) {
     val model: String = Build.MODEL
     val serial: String = getDeviceSerial()
-    val androidVersion: String = Build.VERSION.RELEASE
-    val sdkVersion: Int = Build.VERSION.SDK_INT
-    val manufacturer: String = Build.MANUFACTURER
 
     @SuppressLint("HardwareIds")
     private fun getDeviceSerial(): String {
@@ -24,9 +21,5 @@ class DeviceInfo(private val context: Context? = null) {
         } catch (e: Exception) {
             "Unknown"
         }
-    }
-
-    override fun toString(): String {
-        return "Model=$model,Android=$androidVersion,SDK=$sdkVersion,Manufacturer=$manufacturer"
     }
 }
