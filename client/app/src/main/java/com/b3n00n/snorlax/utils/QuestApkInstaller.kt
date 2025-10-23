@@ -80,35 +80,6 @@ object QuestApkInstaller {
         return@withContext installResult
     }
 
-    // Keep the old synchronous method for backward compatibility
-    fun installApk(context: Context, apkFile: File): InstallResult {
-        Log.d(TAG, "Attempting to install: ${apkFile.absolutePath}")
-
-        // Verify the APK file
-        if (!apkFile.exists()) {
-            return InstallResult.Error("APK file does not exist")
-        }
-
-        if (apkFile.length() == 0L) {
-            return InstallResult.Error("APK file is empty")
-        }
-
-        // Check if we're device owner
-        val devicePolicyManager = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
-        val isDeviceOwner = devicePolicyManager.isDeviceOwnerApp(context.packageName)
-
-        if (!isDeviceOwner) {
-            return InstallResult.Error("App is not device owner. Cannot install.")
-        }
-
-        return try {
-            installSilently(context, apkFile)
-        } catch (e: Exception) {
-            Log.e(TAG, "Silent installation failed", e)
-            InstallResult.Error("Installation failed: ${e.message}")
-        }
-    }
-
     private suspend fun installSilentlyAsync(context: Context, apkFile: File): InstallResult =
         suspendCoroutine { continuation ->
             val sessionId = System.currentTimeMillis().toInt() and 0x7FFFFFFF
