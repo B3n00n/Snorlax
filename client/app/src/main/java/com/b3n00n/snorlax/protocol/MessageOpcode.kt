@@ -17,7 +17,7 @@ object MessageOpcode {
     const val ERROR: Byte = 0x05
 
     // =============================================================================
-    // CLIENT → SERVER (Responses to server commands) - 0x10-0x17
+    // CLIENT → SERVER (Responses to server commands) - 0x10-0x16
     // =============================================================================
 
     const val LAUNCH_APP_RESPONSE: Byte = 0x10
