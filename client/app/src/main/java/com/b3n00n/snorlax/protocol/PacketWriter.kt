@@ -58,6 +58,10 @@ class PacketWriter {
         return byteStream.toByteArray()
     }
 
+    fun size(): Int {
+        return byteStream.size()
+    }
+
     fun clear() {
         byteStream.reset()
     }
@@ -66,5 +70,21 @@ class PacketWriter {
     fun close() {
         dataStream.close()
         byteStream.close()
+    }
+
+    fun writePacket(opcode: Byte, buildPayload: PacketWriter.() -> Unit) {
+        // Build payload in temporary writer to calculate size
+        val payloadWriter = PacketWriter()
+        buildPayload(payloadWriter)
+        val payloadSize = payloadWriter.size()
+
+        // Write header
+        writeU8(opcode.toInt() and 0xFF)
+        writeU16(payloadSize)
+
+        // Write payload bytes directly
+        if (payloadSize > 0) {
+            writeBytes(payloadWriter.toByteArray())
+        }
     }
 }

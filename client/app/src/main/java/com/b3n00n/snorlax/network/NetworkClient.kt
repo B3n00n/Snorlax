@@ -1,9 +1,8 @@
 package com.b3n00n.snorlax.network
 
 import android.util.Log
-import com.b3n00n.snorlax.protocol.PacketReader
+import com.b3n00n.snorlax.protocol.PacketWriter
 import java.io.IOException
-import java.io.InputStream
 import java.io.OutputStream
 import java.net.Socket
 import java.util.concurrent.Executors
@@ -12,7 +11,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 class NetworkClient(
     private val serverIp: String,
     private val serverPort: Int
-) : ConnectionManager {
+) {
 
     companion object {
         private const val TAG = "NetworkClient"
@@ -21,14 +20,24 @@ class NetworkClient(
 
     private val executor = Executors.newFixedThreadPool(2)
     private val isRunning = AtomicBoolean(false)
+    private val packetBuffer = PacketBuffer()
+    private val connected = AtomicBoolean(false)
 
     private var socket: Socket? = null
     private var outputStream: OutputStream? = null
-    private var packetReader: PacketReader? = null
-    private var listener: ConnectionManager.ConnectionListener? = null
-    private var state = ConnectionState.DISCONNECTED
+    private var listener: ConnectionListener? = null
 
-    override fun connect() {
+    /**
+     * Listener for connection events and complete packets.
+     */
+    interface ConnectionListener {
+        fun onConnected()
+        fun onDisconnected()
+        fun onPacketReceived(packet: ByteArray)
+        fun onError(e: Exception)
+    }
+
+    fun connect() {
         if (isRunning.get()) {
             Log.w(TAG, "Already connecting or connected")
             return
@@ -38,44 +47,50 @@ class NetworkClient(
         executor.execute { connectionLoop() }
     }
 
-    override fun disconnect() {
+    fun disconnect() {
         Log.d(TAG, "Disconnecting...")
         isRunning.set(false)
         closeConnection()
     }
 
-    override fun isConnected(): Boolean {
-        return state == ConnectionState.CONNECTED &&
-                socket?.isConnected == true
+    fun isConnected(): Boolean {
+        return connected.get() && socket?.isConnected == true
     }
 
-    override fun sendData(data: ByteArray) {
+    fun sendPacket(opcode: Byte, buildPayload: PacketWriter.() -> Unit) {
         if (!isConnected()) {
-            Log.w(TAG, "Cannot send data - not connected")
+            Log.w(TAG, "Cannot send packet 0x${String.format("%02X", opcode)} - not connected")
             return
         }
 
         executor.execute {
             try {
-                outputStream?.write(data)
+                val packet = PacketWriter()
+                packet.writePacket(opcode, buildPayload)
+                val bytes = packet.toByteArray()
+
+                outputStream?.write(bytes)
                 outputStream?.flush()
+
+                Log.d(TAG, "Sent packet: opcode=0x${String.format("%02X", opcode)}, size=${bytes.size}")
             } catch (e: IOException) {
-                Log.e(TAG, "Error sending data", e)
+                Log.e(TAG, "Error sending packet", e)
                 handleError(e)
             }
         }
     }
 
-    override fun setConnectionListener(listener: ConnectionManager.ConnectionListener) {
+    fun setConnectionListener(listener: ConnectionListener) {
         this.listener = listener
     }
 
     private fun connectionLoop() {
         while (isRunning.get()) {
             try {
-                setState(ConnectionState.CONNECTING)
+                Log.d(TAG, "Connecting...")
                 establishConnection()
-                setState(ConnectionState.CONNECTED)
+                connected.set(true)
+                Log.d(TAG, "Connected")
                 notifyConnected()
                 readLoop()
             } catch (e: Exception) {
@@ -84,7 +99,7 @@ class NetworkClient(
             }
 
             if (isRunning.get()) {
-                setState(ConnectionState.RECONNECTING)
+                Log.d(TAG, "Reconnecting...")
                 try {
                     Thread.sleep(RECONNECT_DELAY_MS)
                 } catch (e: InterruptedException) {
@@ -100,8 +115,8 @@ class NetworkClient(
         Log.d(TAG, "Connecting to $serverIp:$serverPort")
         socket = Socket(serverIp, serverPort).also { sock ->
             outputStream = sock.getOutputStream()
-            packetReader = PacketReader(sock.getInputStream())
         }
+        packetBuffer.clear() // Clear any stale data
         Log.d(TAG, "Connected successfully")
     }
 
@@ -116,7 +131,12 @@ class NetworkClient(
 
             if (bytesRead > 0) {
                 val data = buffer.copyOf(bytesRead)
-                notifyDataReceived(data)
+                packetBuffer.append(data)
+
+                while (true) {
+                    val packet = packetBuffer.tryReadPacket() ?: break
+                    notifyPacketReceived(packet)
+                }
             }
         }
     }
@@ -130,19 +150,15 @@ class NetworkClient(
         } finally {
             outputStream = null
             socket = null
-            packetReader = null
-            setState(ConnectionState.DISCONNECTED)
+            packetBuffer.clear()
+            connected.set(false)
+            Log.d(TAG, "Disconnected")
             notifyDisconnected()
         }
     }
 
-    private fun setState(newState: ConnectionState) {
-        state = newState
-        Log.d(TAG, "Connection state: $newState")
-    }
-
     private fun handleError(e: Exception) {
-        setState(ConnectionState.ERROR)
+        connected.set(false)
         closeConnection()
         listener?.onError(e)
     }
@@ -155,8 +171,8 @@ class NetworkClient(
         listener?.onDisconnected()
     }
 
-    private fun notifyDataReceived(data: ByteArray) {
-        listener?.onDataReceived(data)
+    private fun notifyPacketReceived(packet: ByteArray) {
+        listener?.onPacketReceived(packet)
     }
 
     fun shutdown() {

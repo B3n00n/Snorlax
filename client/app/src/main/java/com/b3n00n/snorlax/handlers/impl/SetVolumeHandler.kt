@@ -3,28 +3,30 @@ package com.b3n00n.snorlax.handlers.impl
 import android.content.Context
 import android.media.AudioManager
 import android.util.Log
+import com.b3n00n.snorlax.core.ClientContext
 import com.b3n00n.snorlax.handlers.IPacketHandler
 import com.b3n00n.snorlax.handlers.PacketHandler
+import com.b3n00n.snorlax.network.NetworkClient
 import com.b3n00n.snorlax.protocol.MessageOpcode
 import com.b3n00n.snorlax.protocol.PacketReader
-import com.b3n00n.snorlax.protocol.PacketWriter
 
 /**
  * Handles SetVolume command (0x4A): [level: u8]
  * Responds with VolumeSetResponse (0x17): [success: bool][message: String]
  */
 @PacketHandler(MessageOpcode.SET_VOLUME)
-class SetVolumeHandler(private val context: Context) : IPacketHandler {
+class SetVolumeHandler : IPacketHandler {
     companion object {
         private const val TAG = "SetVolumeHandler"
     }
 
-    override fun handle(reader: PacketReader, writer: PacketWriter) {
+    override fun handle(reader: PacketReader, client: NetworkClient) {
         val level = reader.readU8()
 
         Log.d(TAG, "Setting volume to: $level%")
 
         val (success, message) = try {
+            val context = ClientContext.context
             val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
             val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
             val targetVolume = (level * maxVolume / 100).coerceIn(0, maxVolume)
@@ -41,14 +43,10 @@ class SetVolumeHandler(private val context: Context) : IPacketHandler {
             false to "Error: ${e.message}"
         }
 
-        // Build payload
-        val payload = PacketWriter()
-        payload.writeU8(if (success) 1 else 0)
-        payload.writeString(message)
-
-        // Write response packet
-        writer.writeU8(MessageOpcode.VOLUME_SET_RESPONSE.toInt() and 0xFF)
-        writer.writeU16(payload.toByteArray().size)
-        writer.writeBytes(payload.toByteArray())
+        // Send response
+        client.sendPacket(MessageOpcode.VOLUME_SET_RESPONSE) {
+            writeU8(if (success) 1 else 0)
+            writeString(message)
+        }
     }
 }

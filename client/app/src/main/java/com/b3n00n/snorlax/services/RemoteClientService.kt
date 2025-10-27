@@ -9,7 +9,6 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.graphics.BitmapFactory
-import android.graphics.Color
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
@@ -21,12 +20,11 @@ import com.b3n00n.snorlax.R
 import com.b3n00n.snorlax.activities.ServerConfigurationActivity
 import com.b3n00n.snorlax.config.ServerConfigurationManager
 import com.b3n00n.snorlax.config.SnorlaxConfigManager
-import com.b3n00n.snorlax.handlers.MessageDispatcher
-import com.b3n00n.snorlax.models.DeviceInfo
-import com.b3n00n.snorlax.network.ConnectionManager
+import com.b3n00n.snorlax.core.ClientContext
 import com.b3n00n.snorlax.network.NetworkClient
+import com.b3n00n.snorlax.network.ProtocolSession
 
-class RemoteClientService : Service(), ConnectionManager.ConnectionListener {
+class RemoteClientService : Service() {
     companion object {
         private const val TAG = "RemoteClientService"
         private const val NOTIFICATION_ID = 1
@@ -35,7 +33,7 @@ class RemoteClientService : Service(), ConnectionManager.ConnectionListener {
     }
 
     private var networkClient: NetworkClient? = null
-    private var dispatcher: MessageDispatcher? = null
+    private var protocolSession: ProtocolSession? = null
     private var isServiceRunning = false
     private lateinit var configManager: ServerConfigurationManager
 
@@ -46,6 +44,9 @@ class RemoteClientService : Service(), ConnectionManager.ConnectionListener {
     override fun onCreate() {
         super.onCreate()
         Log.d(TAG, "Service created")
+
+        // Initialize ClientContext for shared access
+        ClientContext.initialize(this)
 
         createNotificationChannel()
         configManager = ServerConfigurationManager(this)
@@ -58,9 +59,7 @@ class RemoteClientService : Service(), ConnectionManager.ConnectionListener {
         Log.d(TAG, "Using server configuration: $serverIp:$serverPort")
 
         networkClient = NetworkClient(serverIp, serverPort)
-        networkClient!!.setConnectionListener(this)
-
-        dispatcher = MessageDispatcher(this, networkClient!!)
+        protocolSession = ProtocolSession(networkClient!!)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -149,7 +148,7 @@ class RemoteClientService : Service(), ConnectionManager.ConnectionListener {
             override fun run() {
                 try {
                     if (networkClient?.isConnected() == true) {
-                        dispatcher?.sendHeartbeat()
+                        protocolSession?.sendHeartbeat()
                         Log.d(TAG, "Heartbeat sent")
                     }
                     heartbeatHandler?.postDelayed(this, heartbeatInterval)
@@ -171,20 +170,8 @@ class RemoteClientService : Service(), ConnectionManager.ConnectionListener {
 
     private fun startNetworkConnection() {
         networkClient!!.connect()
-    }
-
-    override fun onConnected() {
-        Log.d(TAG, "Connected to server")
-        sendDeviceInfo()
+        // ProtocolSession handles connection events and starts heartbeat
         startHeartbeat()
-
-        updateNotification()
-    }
-
-    override fun onDisconnected() {
-        Log.d(TAG, "Disconnected from server")
-        stopHeartbeat()
-        updateNotification()
     }
 
     private fun updateNotification() {
@@ -198,24 +185,6 @@ class RemoteClientService : Service(), ConnectionManager.ConnectionListener {
             // For older versions, just update normally
             val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.notify(NOTIFICATION_ID, createForegroundNotification())
-        }
-    }
-
-    override fun onDataReceived(data: ByteArray) {
-        dispatcher!!.handleIncoming(data)
-    }
-
-    override fun onError(e: Exception) {
-        Log.e(TAG, "Network error: ${e.message}")
-    }
-
-    private fun sendDeviceInfo() {
-        try {
-            val deviceInfo = DeviceInfo(this)
-            dispatcher?.sendDeviceConnected(deviceInfo.model, deviceInfo.serial)
-            Log.d(TAG, "Sent device info")
-        } catch (e: Exception) {
-            Log.e(TAG, "Error sending device info", e)
         }
     }
 

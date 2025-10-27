@@ -21,6 +21,7 @@ object QuestApkInstaller {
     private const val TAG = "QuestApkInstaller"
     private const val ACTION_INSTALL_COMPLETE = "com.b3n00n.snorlax.INSTALL_COMPLETE"
     private const val INSTALL_TIMEOUT_MS = 30000L
+    private const val UNINSTALL_TIMEOUT_MS = 10000L
 
     suspend fun installApkAsync(
         context: Context,
@@ -52,6 +53,23 @@ object QuestApkInstaller {
 
         if (packageName == null) {
             return@withContext InstallResult.Error("Cannot read package name from APK")
+        }
+
+        // Check if package is already installed and remove it
+        if (isPackageInstalled(context, packageName)) {
+            Log.d(TAG, "Package $packageName already installed, removing it first...")
+            val uninstallResult = uninstallApkAsync(context, packageName)
+
+            when (uninstallResult) {
+                is UninstallResult.Success -> {
+                    Log.d(TAG, "Successfully uninstalled existing package: ${uninstallResult.message}")
+                    // Give system time to process the uninstallation
+                    delay(500)
+                }
+                is UninstallResult.Error -> {
+                    Log.w(TAG, "Failed to uninstall existing package: ${uninstallResult.message}, proceeding anyway...")
+                }
+            }
         }
 
         val installResult = installSilentlyAsync(context, apkFile)
@@ -263,8 +281,92 @@ object QuestApkInstaller {
         return InstallResult.Success("APK installation started")
     }
 
+    private fun isPackageInstalled(context: Context, packageName: String): Boolean {
+        return try {
+            context.packageManager.getPackageInfo(packageName, 0)
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    suspend fun uninstallApkAsync(
+        context: Context,
+        packageName: String
+    ): UninstallResult = suspendCoroutine { continuation ->
+        try {
+            val devicePolicyManager = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+            if (!devicePolicyManager.isDeviceOwnerApp(context.packageName)) {
+                continuation.resume(UninstallResult.Error("App is not device owner. Cannot uninstall."))
+                return@suspendCoroutine
+            }
+
+            val sessionId = System.currentTimeMillis().toInt() and 0x7FFFFFFF
+            val packageInstaller = context.packageManager.packageInstaller
+
+            val receiver = object : BroadcastReceiver() {
+                override fun onReceive(ctx: Context, intent: Intent) {
+                    val status = intent.getIntExtra(PackageInstaller.EXTRA_STATUS, PackageInstaller.STATUS_FAILURE)
+                    val message = intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE) ?: ""
+
+                    try {
+                        context.unregisterReceiver(this)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error unregistering receiver", e)
+                    }
+
+                    when (status) {
+                        PackageInstaller.STATUS_SUCCESS -> {
+                            Log.d(TAG, "Uninstall successful for $packageName")
+                            continuation.resume(UninstallResult.Success("Uninstalled $packageName"))
+                        }
+                        else -> {
+                            Log.e(TAG, "Uninstall failed: $message")
+                            continuation.resume(UninstallResult.Error("Failed: $message"))
+                        }
+                    }
+                }
+            }
+
+            val filter = IntentFilter("com.b3n00n.snorlax.UNINSTALL_$sessionId")
+            ContextCompat.registerReceiver(context, receiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
+
+            val intent = Intent("com.b3n00n.snorlax.UNINSTALL_$sessionId").apply {
+                setPackage(context.packageName)
+            }
+
+            val pendingIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                PendingIntent.getBroadcast(context, sessionId, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE)
+            } else {
+                PendingIntent.getBroadcast(context, sessionId, intent, PendingIntent.FLAG_UPDATE_CURRENT)
+            }
+
+            packageInstaller.uninstall(packageName, pendingIntent.intentSender)
+
+            // Set timeout
+            GlobalScope.launch {
+                delay(UNINSTALL_TIMEOUT_MS)
+                try {
+                    context.unregisterReceiver(receiver)
+                    continuation.resume(UninstallResult.Error("Uninstall timeout after ${UNINSTALL_TIMEOUT_MS/1000} seconds"))
+                } catch (e: Exception) {
+                    // Receiver was already unregistered, uninstall completed
+                }
+            }
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Error during uninstall", e)
+            continuation.resume(UninstallResult.Error("Uninstall error: ${e.message}"))
+        }
+    }
+
     sealed class InstallResult {
         data class Success(val message: String) : InstallResult()
         data class Error(val message: String) : InstallResult()
+    }
+
+    sealed class UninstallResult {
+        data class Success(val message: String) : UninstallResult()
+        data class Error(val message: String) : UninstallResult()
     }
 }

@@ -1,27 +1,27 @@
 package com.b3n00n.snorlax.handlers.impl
 
-import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.BatteryManager
 import android.util.Log
+import com.b3n00n.snorlax.core.ClientContext
 import com.b3n00n.snorlax.handlers.IPacketHandler
 import com.b3n00n.snorlax.handlers.PacketHandler
+import com.b3n00n.snorlax.network.NetworkClient
 import com.b3n00n.snorlax.protocol.MessageOpcode
 import com.b3n00n.snorlax.protocol.PacketReader
-import com.b3n00n.snorlax.protocol.PacketWriter
 
 /**
  * Handles RequestBattery command (0x42): empty payload
  * Responds with BatteryStatus (0x03): [level: u8][is_charging: bool]
  */
 @PacketHandler(MessageOpcode.REQUEST_BATTERY)
-class RequestBatteryHandler(private val context: Context) : IPacketHandler {
+class RequestBatteryHandler : IPacketHandler {
     companion object {
         private const val TAG = "RequestBatteryHandler"
     }
 
-    override fun handle(reader: PacketReader, writer: PacketWriter) {
+    override fun handle(reader: PacketReader, client: NetworkClient) {
         // No payload to read
 
         Log.d(TAG, "Requesting battery status")
@@ -30,6 +30,7 @@ class RequestBatteryHandler(private val context: Context) : IPacketHandler {
         var isCharging = false
 
         try {
+            val context = ClientContext.context
             val batteryStatus: Intent? = context.registerReceiver(
                 null,
                 IntentFilter(Intent.ACTION_BATTERY_CHANGED)
@@ -50,14 +51,10 @@ class RequestBatteryHandler(private val context: Context) : IPacketHandler {
             Log.e(TAG, "Error getting battery status", e)
         }
 
-        // Build payload
-        val payload = PacketWriter()
-        payload.writeU8(level)
-        payload.writeU8(if (isCharging) 1 else 0)
-
-        // Write response packet
-        writer.writeU8(MessageOpcode.BATTERY_STATUS.toInt() and 0xFF)
-        writer.writeU16(payload.toByteArray().size)
-        writer.writeBytes(payload.toByteArray())
+        // Send response
+        client.sendPacket(MessageOpcode.BATTERY_STATUS) {
+            writeU8(level)
+            writeU8(if (isCharging) 1 else 0)
+        }
     }
 }

@@ -1,18 +1,35 @@
 package com.b3n00n.snorlax.handlers
 
-import android.content.Context
 import android.util.Log
+import com.b3n00n.snorlax.handlers.impl.*
+import com.b3n00n.snorlax.network.NetworkClient
 import com.b3n00n.snorlax.protocol.PacketReader
-import com.b3n00n.snorlax.protocol.PacketWriter
+import java.io.ByteArrayInputStream
 
-class HandlerRegistry(private val context: Context) {
+class HandlerRegistry {
     companion object {
         private const val TAG = "HandlerRegistry"
     }
 
     private val handlers = mutableMapOf<Byte, IPacketHandler>()
 
-    fun register(handler: IPacketHandler) {
+    init {
+        register(PingHandler())
+        register(LaunchAppHandler())
+        register(ExecuteShellHandler())
+        register(RequestBatteryHandler())
+        register(RequestInstalledAppsHandler())
+        register(UninstallAppHandler())
+        register(SetVolumeHandler())
+        register(GetVolumeHandler())
+        register(ShutdownHandler())
+        register(InstallApkHandler())
+        register(InstallLocalApkHandler())
+
+        Log.d(TAG, "Registered ${handlers.size} handlers")
+    }
+
+    private fun register(handler: IPacketHandler) {
         val annotation = handler.javaClass.getAnnotation(PacketHandler::class.java)
         if (annotation != null) {
             val opcode = annotation.opcode
@@ -23,22 +40,29 @@ class HandlerRegistry(private val context: Context) {
         }
     }
 
-    fun handle(opcode: Byte, reader: PacketReader): ByteArray? {
-        val handler = handlers[opcode]
-        if (handler == null) {
-            Log.w(TAG, "No handler for opcode 0x${String.format("%02X", opcode)}")
-            return null
-        }
+    /**
+     * Route a complete packet to its handler.
+     *
+     * @param packet Complete packet bytes [opcode][length][payload]
+     * @param client The network client for sending responses
+     */
+    fun routePacket(packet: ByteArray, client: NetworkClient) {
+        try {
+            val reader = PacketReader(ByteArrayInputStream(packet))
+            val opcode = reader.readU8().toByte()
+            val length = reader.readU16()
 
-        return try {
-            val writer = PacketWriter()
-            handler.handle(reader, writer)
-            writer.toByteArray()
+            Log.d(TAG, "Routing packet: opcode=0x${String.format("%02X", opcode)}, length=$length")
+
+            val handler = handlers[opcode]
+            if (handler == null) {
+                Log.w(TAG, "No handler for opcode 0x${String.format("%02X", opcode)}")
+                return
+            }
+
+            handler.handle(reader, client)
         } catch (e: Exception) {
-            Log.e(TAG, "Error handling opcode 0x${String.format("%02X", opcode)}", e)
-            null
+            Log.e(TAG, "Error routing packet", e)
         }
     }
-
-    fun getHandlerCount(): Int = handlers.size
 }

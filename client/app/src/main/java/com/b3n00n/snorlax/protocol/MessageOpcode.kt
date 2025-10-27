@@ -27,6 +27,7 @@ object MessageOpcode {
     const val APK_INSTALL_RESPONSE: Byte = 0x14
     const val UNINSTALL_APP_RESPONSE: Byte = 0x15
     const val VOLUME_SET_RESPONSE: Byte = 0x16
+    const val APK_DOWNLOAD_STARTED: Byte = 0x17
 
     // =============================================================================
     // SERVER → CLIENT (Commands from server) - 0x40-0x4B

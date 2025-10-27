@@ -1,18 +1,14 @@
 package com.b3n00n.snorlax.handlers.impl
 
-import android.content.Context
 import android.util.Log
+import com.b3n00n.snorlax.core.BackgroundJobs
+import com.b3n00n.snorlax.core.ClientContext
 import com.b3n00n.snorlax.handlers.IPacketHandler
 import com.b3n00n.snorlax.handlers.PacketHandler
+import com.b3n00n.snorlax.network.NetworkClient
 import com.b3n00n.snorlax.protocol.MessageOpcode
 import com.b3n00n.snorlax.protocol.PacketReader
-import com.b3n00n.snorlax.protocol.PacketWriter
 import com.b3n00n.snorlax.utils.QuestApkInstaller
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 import java.net.HttpURLConnection
@@ -24,44 +20,52 @@ import java.net.URL
  * Downloads APK from local server and installs it
  */
 @PacketHandler(MessageOpcode.INSTALL_LOCAL_APK)
-class InstallLocalApkHandler(private val context: Context) : IPacketHandler {
+class InstallLocalApkHandler : IPacketHandler {
     companion object {
         private const val TAG = "InstallLocalApkHandler"
     }
 
-    override fun handle(reader: PacketReader, writer: PacketWriter) {
+    override fun handle(reader: PacketReader, client: NetworkClient) {
         val filename = reader.readString()
 
         Log.d(TAG, "Installing local APK: $filename")
 
-        // Download and install synchronously (blocks until complete)
-        val (success, message) = runBlocking {
-            downloadAndInstall(filename)
+        // Send download started notification immediately
+        client.sendPacket(MessageOpcode.APK_DOWNLOAD_STARTED) {
+            writeString(filename)
         }
 
-        // Send final response
-        sendResponse(writer, success, message)
+        // Launch background job for download/install
+        // Handler returns immediately, keeping message thread responsive
+        BackgroundJobs.submit {
+            try {
+                val (success, message) = downloadAndInstall(filename)
+
+                client.sendPacket(MessageOpcode.APK_INSTALL_RESPONSE) {
+                    writeU8(if (success) 1 else 0)
+                    writeString(message)
+                }
+                Log.d(TAG, "Sent install response: success=$success")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error during background installation", e)
+                client.sendPacket(MessageOpcode.APK_INSTALL_RESPONSE) {
+                    writeU8(0)
+                    writeString("Installation error: ${e.message}")
+                }
+            }
+        }
     }
 
-    private fun sendResponse(writer: PacketWriter, success: Boolean, message: String) {
-        val payload = PacketWriter()
-        payload.writeU8(if (success) 1 else 0)
-        payload.writeString(message)
-
-        writer.writeU8(MessageOpcode.APK_INSTALL_RESPONSE.toInt() and 0xFF)
-        writer.writeU16(payload.toByteArray().size)
-        writer.writeBytes(payload.toByteArray())
-    }
-
-    private suspend fun downloadAndInstall(filename: String): Pair<Boolean, String> = withContext(Dispatchers.IO) {
+    private suspend fun downloadAndInstall(filename: String): Pair<Boolean, String> {
         try {
+            val context = ClientContext.context
             // Construct local URL (server address from filename)
             val url = URL(filename)
             val connection = url.openConnection() as HttpURLConnection
             connection.connect()
 
             if (connection.responseCode != HttpURLConnection.HTTP_OK) {
-                return@withContext false to "HTTP error: ${connection.responseCode}"
+                return false to "HTTP error: ${connection.responseCode}"
             }
 
             val tempDir = File(context.filesDir, "temp_apks").apply { mkdirs() }
@@ -76,7 +80,7 @@ class InstallLocalApkHandler(private val context: Context) : IPacketHandler {
             connection.disconnect()
 
             // Install
-            when (val result = QuestApkInstaller.installApkAsync(context, tempFile, autoGrantPermissions = true)) {
+            return when (val result = QuestApkInstaller.installApkAsync(context, tempFile, autoGrantPermissions = true)) {
                 is QuestApkInstaller.InstallResult.Success -> {
                     tempFile.delete()
                     true to result.message
@@ -88,7 +92,7 @@ class InstallLocalApkHandler(private val context: Context) : IPacketHandler {
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error installing local APK", e)
-            false to "Error: ${e.message}"
+            return false to "Error: ${e.message}"
         }
     }
 }

@@ -4,31 +4,35 @@ import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
 import android.util.Log
+import com.b3n00n.snorlax.core.BackgroundJobs
+import com.b3n00n.snorlax.core.ClientContext
 import com.b3n00n.snorlax.handlers.IPacketHandler
 import com.b3n00n.snorlax.handlers.PacketHandler
+import com.b3n00n.snorlax.network.NetworkClient
 import com.b3n00n.snorlax.protocol.MessageOpcode
 import com.b3n00n.snorlax.protocol.PacketReader
-import com.b3n00n.snorlax.protocol.PacketWriter
 import com.b3n00n.snorlax.receivers.DeviceOwnerReceiver
+import kotlinx.coroutines.delay
 
 /**
  * Handles Shutdown command (0x48): empty payload
- * Responds with ShutdownResponse (0x16): empty payload, then reboots device
+ * No response - device reboots immediately
  */
 @PacketHandler(MessageOpcode.SHUTDOWN)
-class ShutdownHandler(private val context: Context) : IPacketHandler {
+class ShutdownHandler : IPacketHandler {
     companion object {
         private const val TAG = "ShutdownHandler"
     }
 
-    override fun handle(reader: PacketReader, writer: PacketWriter) {
+    override fun handle(reader: PacketReader, client: NetworkClient) {
         // No payload to read
 
         Log.d(TAG, "Shutdown/reboot requested")
 
-        Thread {
-            Thread.sleep(500)
+        BackgroundJobs.submit {
+            delay(500)
             try {
+                val context = ClientContext.context
                 val devicePolicyManager = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
                 val adminComponent = ComponentName(context, DeviceOwnerReceiver::class.java)
 
@@ -42,6 +46,6 @@ class ShutdownHandler(private val context: Context) : IPacketHandler {
             } catch (e: Exception) {
                 Log.e(TAG, "Error rebooting device", e)
             }
-        }.start()
+        }
     }
 }
