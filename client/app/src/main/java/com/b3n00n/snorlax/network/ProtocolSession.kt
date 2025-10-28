@@ -1,8 +1,8 @@
 package com.b3n00n.snorlax.network
 
 import android.util.Log
-import com.b3n00n.snorlax.core.ClientContext
 import com.b3n00n.snorlax.handlers.HandlerRegistry
+import com.b3n00n.snorlax.models.DeviceInfo
 import com.b3n00n.snorlax.protocol.MessageOpcode
 
 /**
@@ -14,14 +14,14 @@ import com.b3n00n.snorlax.protocol.MessageOpcode
  * - Managing the session lifecycle
  */
 class ProtocolSession(
-    private val client: NetworkClient
+    private val client: NetworkClient,
+    private val registry: HandlerRegistry,
+    private val deviceInfo: DeviceInfo
 ) : NetworkClient.ConnectionListener {
 
     companion object {
         private const val TAG = "ProtocolSession"
     }
-
-    private val registry = HandlerRegistry()
 
     init {
         client.setConnectionListener(this)
@@ -61,7 +61,6 @@ class ProtocolSession(
      */
     private fun sendDeviceConnected() {
         try {
-            val deviceInfo = ClientContext.deviceInfo
             client.sendPacket(MessageOpcode.DEVICE_CONNECTED) {
                 writeString(deviceInfo.model)
                 writeString(deviceInfo.serial)

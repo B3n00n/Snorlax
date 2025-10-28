@@ -1,8 +1,8 @@
 package com.b3n00n.snorlax.handlers.impl
 
+import android.content.Context
 import android.util.Log
 import com.b3n00n.snorlax.core.BackgroundJobs
-import com.b3n00n.snorlax.core.ClientContext
 import com.b3n00n.snorlax.handlers.IPacketHandler
 import com.b3n00n.snorlax.handlers.PacketHandler
 import com.b3n00n.snorlax.network.NetworkClient
@@ -20,7 +20,7 @@ import java.net.URL
  * Downloads APK from local server and installs it
  */
 @PacketHandler(MessageOpcode.INSTALL_LOCAL_APK)
-class InstallLocalApkHandler : IPacketHandler {
+class InstallLocalApkHandler(private val context: Context) : IPacketHandler {
     companion object {
         private const val TAG = "InstallLocalApkHandler"
     }
@@ -58,7 +58,6 @@ class InstallLocalApkHandler : IPacketHandler {
 
     private suspend fun downloadAndInstall(filename: String): Pair<Boolean, String> {
         try {
-            val context = ClientContext.context
             // Construct local URL (server address from filename)
             val url = URL(filename)
             val connection = url.openConnection() as HttpURLConnection

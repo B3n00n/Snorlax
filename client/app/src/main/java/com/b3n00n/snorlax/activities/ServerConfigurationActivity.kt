@@ -18,9 +18,12 @@ import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import com.b3n00n.snorlax.config.ServerConfigurationManager
 import com.b3n00n.snorlax.services.RemoteClientService
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class ServerConfigurationActivity : ComponentActivity() {
-    private lateinit var configManager: ServerConfigurationManager
+    @Inject lateinit var configManager: ServerConfigurationManager
     private lateinit var ipEditText: EditText
     private lateinit var portEditText: EditText
 
@@ -39,8 +42,6 @@ class ServerConfigurationActivity : ComponentActivity() {
                     WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
                     WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
         )
-
-        configManager = ServerConfigurationManager(this)
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {

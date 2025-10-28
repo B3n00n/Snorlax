@@ -1,12 +1,21 @@
 package com.b3n00n.snorlax.handlers
 
+import android.content.Context
+import android.media.AudioManager
 import android.util.Log
 import com.b3n00n.snorlax.handlers.impl.*
 import com.b3n00n.snorlax.network.NetworkClient
 import com.b3n00n.snorlax.protocol.PacketReader
+import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.ByteArrayInputStream
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class HandlerRegistry {
+@Singleton
+class HandlerRegistry @Inject constructor(
+    @ApplicationContext private val context: Context,
+    private val audioManager: AudioManager
+) {
     companion object {
         private const val TAG = "HandlerRegistry"
     }
@@ -15,21 +24,21 @@ class HandlerRegistry {
 
     init {
         register(PingHandler())
-        register(LaunchAppHandler())
+        register(LaunchAppHandler(context))
         register(ExecuteShellHandler())
-        register(RequestBatteryHandler())
-        register(RequestInstalledAppsHandler())
-        register(UninstallAppHandler())
-        register(SetVolumeHandler())
-        register(GetVolumeHandler())
-        register(ShutdownHandler())
-        register(InstallApkHandler())
-        register(InstallLocalApkHandler())
+        register(RequestBatteryHandler(context))
+        register(RequestInstalledAppsHandler(context))
+        register(UninstallAppHandler(context))
+        register(SetVolumeHandler(audioManager))
+        register(GetVolumeHandler(audioManager))
+        register(ShutdownHandler(context))
+        register(InstallApkHandler(context))
+        register(InstallLocalApkHandler(context))
 
         Log.d(TAG, "Registered ${handlers.size} handlers")
     }
 
-    private fun register(handler: IPacketHandler) {
+    fun register(handler: IPacketHandler) {
         val annotation = handler.javaClass.getAnnotation(PacketHandler::class.java)
         if (annotation != null) {
             val opcode = annotation.opcode

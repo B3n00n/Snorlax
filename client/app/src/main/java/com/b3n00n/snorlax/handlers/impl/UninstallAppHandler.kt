@@ -1,8 +1,8 @@
 package com.b3n00n.snorlax.handlers.impl
 
+import android.content.Context
 import android.util.Log
 import com.b3n00n.snorlax.core.BackgroundJobs
-import com.b3n00n.snorlax.core.ClientContext
 import com.b3n00n.snorlax.handlers.IPacketHandler
 import com.b3n00n.snorlax.handlers.PacketHandler
 import com.b3n00n.snorlax.network.NetworkClient
@@ -15,7 +15,7 @@ import com.b3n00n.snorlax.utils.QuestApkInstaller
  * Responds with UninstallAppResponse (0x15): [success: bool][message: String]
  */
 @PacketHandler(MessageOpcode.UNINSTALL_APP)
-class UninstallAppHandler : IPacketHandler {
+class UninstallAppHandler(private val context: Context) : IPacketHandler {
     companion object {
         private const val TAG = "UninstallAppHandler"
     }
@@ -27,7 +27,6 @@ class UninstallAppHandler : IPacketHandler {
 
         // Submit background job for async uninstall
         BackgroundJobs.submit {
-            val context = ClientContext.context
             val result = QuestApkInstaller.uninstallApkAsync(context, packageName)
 
             val (success, message) = when (result) {

@@ -1,9 +1,7 @@
 package com.b3n00n.snorlax.handlers.impl
 
-import android.content.Context
 import android.media.AudioManager
 import android.util.Log
-import com.b3n00n.snorlax.core.ClientContext
 import com.b3n00n.snorlax.handlers.IPacketHandler
 import com.b3n00n.snorlax.handlers.PacketHandler
 import com.b3n00n.snorlax.network.NetworkClient
@@ -15,7 +13,7 @@ import com.b3n00n.snorlax.protocol.PacketReader
  * Responds with VolumeStatus (0x04): [percentage: u8][current: u8][max: u8]
  */
 @PacketHandler(MessageOpcode.GET_VOLUME)
-class GetVolumeHandler : IPacketHandler {
+class GetVolumeHandler(private val audioManager: AudioManager) : IPacketHandler {
     companion object {
         private const val TAG = "GetVolumeHandler"
     }
@@ -24,8 +22,6 @@ class GetVolumeHandler : IPacketHandler {
         // No payload to read
 
         try {
-            val context = ClientContext.context
-            val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
             val current = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
             val max = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
             val percentage = if (max > 0) (current * 100 / max) else 0

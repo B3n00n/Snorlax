@@ -1,8 +1,8 @@
 package com.b3n00n.snorlax.handlers.impl
 
+import android.content.Context
 import android.content.Intent
 import android.util.Log
-import com.b3n00n.snorlax.core.ClientContext
 import com.b3n00n.snorlax.handlers.IPacketHandler
 import com.b3n00n.snorlax.handlers.PacketHandler
 import com.b3n00n.snorlax.network.NetworkClient
@@ -14,7 +14,7 @@ import com.b3n00n.snorlax.protocol.PacketReader
  * Responds with InstalledAppsResponse (0x12): [count: u32][apps: Vec<String>]
  */
 @PacketHandler(MessageOpcode.REQUEST_INSTALLED_APPS)
-class RequestInstalledAppsHandler : IPacketHandler {
+class RequestInstalledAppsHandler(private val context: Context) : IPacketHandler {
     companion object {
         private const val TAG = "RequestInstalledAppsHandler"
     }
@@ -25,7 +25,6 @@ class RequestInstalledAppsHandler : IPacketHandler {
         Log.d(TAG, "Requesting installed apps")
 
         val apps = try {
-            val context = ClientContext.context
             val mainIntent = Intent(Intent.ACTION_MAIN, null).apply {
                 addCategory(Intent.CATEGORY_LAUNCHER)
             }

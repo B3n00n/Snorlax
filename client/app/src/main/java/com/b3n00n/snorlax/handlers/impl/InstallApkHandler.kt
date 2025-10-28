@@ -1,8 +1,8 @@
 package com.b3n00n.snorlax.handlers.impl
 
+import android.content.Context
 import android.util.Log
 import com.b3n00n.snorlax.core.BackgroundJobs
-import com.b3n00n.snorlax.core.ClientContext
 import com.b3n00n.snorlax.handlers.IPacketHandler
 import com.b3n00n.snorlax.handlers.PacketHandler
 import com.b3n00n.snorlax.network.NetworkClient
@@ -20,7 +20,7 @@ import java.net.URL
  * Downloads APK from URL and installs it
  */
 @PacketHandler(MessageOpcode.INSTALL_APK)
-class InstallApkHandler : IPacketHandler {
+class InstallApkHandler(private val context: Context) : IPacketHandler {
     companion object {
         private const val TAG = "InstallApkHandler"
     }
@@ -58,7 +58,6 @@ class InstallApkHandler : IPacketHandler {
 
     private suspend fun downloadAndInstall(urlString: String): Pair<Boolean, String> {
         try {
-            val context = ClientContext.context
             val url = URL(urlString)
             val connection = url.openConnection() as HttpURLConnection
             connection.connect()
