@@ -5,6 +5,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.util.Log
 import com.b3n00n.snorlax.core.BackgroundJobs
+import com.b3n00n.snorlax.core.ClientContext
 import com.b3n00n.snorlax.handlers.IPacketHandler
 import com.b3n00n.snorlax.handlers.PacketHandler
 import com.b3n00n.snorlax.network.NetworkClient
@@ -18,7 +19,7 @@ import kotlinx.coroutines.delay
  * No response - device reboots immediately
  */
 @PacketHandler(MessageOpcode.SHUTDOWN)
-class ShutdownHandler(private val context: Context) : IPacketHandler {
+class ShutdownHandler : IPacketHandler {
     companion object {
         private const val TAG = "ShutdownHandler"
     }
@@ -31,6 +32,7 @@ class ShutdownHandler(private val context: Context) : IPacketHandler {
         BackgroundJobs.submit {
             delay(500)
             try {
+                val context = ClientContext.context
                 val devicePolicyManager = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
                 val adminComponent = ComponentName(context, DeviceOwnerReceiver::class.java)
 

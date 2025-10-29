@@ -1,10 +1,10 @@
 package com.b3n00n.snorlax.handlers.impl
 
-import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.BatteryManager
 import android.util.Log
+import com.b3n00n.snorlax.core.ClientContext
 import com.b3n00n.snorlax.handlers.IPacketHandler
 import com.b3n00n.snorlax.handlers.PacketHandler
 import com.b3n00n.snorlax.network.NetworkClient
@@ -16,7 +16,7 @@ import com.b3n00n.snorlax.protocol.PacketReader
  * Responds with BatteryStatus (0x03): [level: u8][is_charging: bool]
  */
 @PacketHandler(MessageOpcode.REQUEST_BATTERY)
-class RequestBatteryHandler(private val context: Context) : IPacketHandler {
+class RequestBatteryHandler : IPacketHandler {
     companion object {
         private const val TAG = "RequestBatteryHandler"
     }
@@ -30,6 +30,7 @@ class RequestBatteryHandler(private val context: Context) : IPacketHandler {
         var isCharging = false
 
         try {
+            val context = ClientContext.context
             val batteryStatus: Intent? = context.registerReceiver(
                 null,
                 IntentFilter(Intent.ACTION_BATTERY_CHANGED)

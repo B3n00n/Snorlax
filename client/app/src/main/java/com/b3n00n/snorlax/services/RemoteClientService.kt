@@ -20,14 +20,10 @@ import com.b3n00n.snorlax.R
 import com.b3n00n.snorlax.activities.ServerConfigurationActivity
 import com.b3n00n.snorlax.config.ServerConfigurationManager
 import com.b3n00n.snorlax.config.SnorlaxConfigManager
-import com.b3n00n.snorlax.handlers.HandlerRegistry
-import com.b3n00n.snorlax.models.DeviceInfo
+import com.b3n00n.snorlax.core.ClientContext
 import com.b3n00n.snorlax.network.NetworkClient
 import com.b3n00n.snorlax.network.ProtocolSession
-import dagger.hilt.android.AndroidEntryPoint
-import javax.inject.Inject
 
-@AndroidEntryPoint
 class RemoteClientService : Service() {
     companion object {
         private const val TAG = "RemoteClientService"
@@ -36,13 +32,10 @@ class RemoteClientService : Service() {
         const val ACTION_OPEN_CONFIG = "com.b3n00n.snorlax.OPEN_CONFIG"
     }
 
-    @Inject lateinit var networkClient: NetworkClient
-    @Inject lateinit var configManager: ServerConfigurationManager
-    @Inject lateinit var handlerRegistry: HandlerRegistry
-    @Inject lateinit var deviceInfo: DeviceInfo
-
+    private var networkClient: NetworkClient? = null
     private var protocolSession: ProtocolSession? = null
     private var isServiceRunning = false
+    private lateinit var configManager: ServerConfigurationManager
 
     private var heartbeatHandler: Handler? = null
     private var heartbeatRunnable: Runnable? = null
@@ -52,7 +45,11 @@ class RemoteClientService : Service() {
         super.onCreate()
         Log.d(TAG, "Service created")
 
+        // Initialize ClientContext for shared access
+        ClientContext.initialize(this)
+
         createNotificationChannel()
+        configManager = ServerConfigurationManager(this)
 
         startForeground(NOTIFICATION_ID, createForegroundNotification())
 
@@ -61,7 +58,8 @@ class RemoteClientService : Service() {
 
         Log.d(TAG, "Using server configuration: $serverIp:$serverPort")
 
-        protocolSession = ProtocolSession(networkClient, handlerRegistry, deviceInfo)
+        networkClient = NetworkClient(serverIp, serverPort)
+        protocolSession = ProtocolSession(networkClient!!)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -149,7 +147,7 @@ class RemoteClientService : Service() {
         heartbeatRunnable = object : Runnable {
             override fun run() {
                 try {
-                    if (networkClient.isConnected()) {
+                    if (networkClient?.isConnected() == true) {
                         protocolSession?.sendHeartbeat()
                         Log.d(TAG, "Heartbeat sent")
                     }
@@ -171,7 +169,7 @@ class RemoteClientService : Service() {
     }
 
     private fun startNetworkConnection() {
-        networkClient.connect()
+        networkClient!!.connect()
         // ProtocolSession handles connection events and starts heartbeat
         startHeartbeat()
     }
@@ -196,7 +194,7 @@ class RemoteClientService : Service() {
 
         isServiceRunning = false
         stopHeartbeat()
-        networkClient.shutdown()
+        networkClient?.shutdown()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
