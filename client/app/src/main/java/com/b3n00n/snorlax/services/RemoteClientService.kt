@@ -130,6 +130,7 @@ class RemoteClientService : Service() {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(SnorlaxConfigManager.APP_NAME)
             .setContentText("Server: $serverInfo | Version: ${SnorlaxConfigManager.APP_VERSION}")
+            .setSmallIcon(R.drawable.ic_notification)
             .setLargeIcon(BitmapFactory.decodeResource(resources, R.drawable.ic_notification))
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)
