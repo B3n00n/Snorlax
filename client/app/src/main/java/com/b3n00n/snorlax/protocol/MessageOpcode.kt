@@ -28,9 +28,10 @@ object MessageOpcode {
     const val UNINSTALL_APP_RESPONSE: Byte = 0x15
     const val VOLUME_SET_RESPONSE: Byte = 0x16
     const val APK_DOWNLOAD_STARTED: Byte = 0x17
+    const val CLOSE_ALL_APPS_RESPONSE: Byte = 0x18
 
     // =============================================================================
-    // SERVER → CLIENT (Commands from server) - 0x40-0x4B
+    // SERVER → CLIENT (Commands from server) - 0x40-0x4C
     // =============================================================================
 
     const val LAUNCH_APP: Byte = 0x40
@@ -44,4 +45,5 @@ object MessageOpcode {
     const val UNINSTALL_APP: Byte = 0x49
     const val SET_VOLUME: Byte = 0x4A
     const val GET_VOLUME: Byte = 0x4B
+    const val CLOSE_ALL_APPS: Byte = 0x4C
 }
