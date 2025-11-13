@@ -164,7 +164,7 @@ class ServerConfigurationActivity : ComponentActivity() {
 
             portEditText = EditText(this@ServerConfigurationActivity).apply {
                 setText(configManager.getServerPort().toString())
-                hint = "8888"
+                hint = "43572"
                 inputType = InputType.TYPE_CLASS_NUMBER
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 22f)
                 setTextColor(textPrimary)

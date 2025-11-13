@@ -11,7 +11,7 @@ class ServerConfigurationManager(private val context: Context) {
         private const val KEY_SERVER_IP = "server_ip"
         private const val KEY_SERVER_PORT = "server_port"
         private const val DEFAULT_SERVER_IP = "192.168.0.77"
-        private const val DEFAULT_SERVER_PORT = 8888
+        private const val DEFAULT_SERVER_PORT = 43572
     }
 
     private val prefs: SharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
