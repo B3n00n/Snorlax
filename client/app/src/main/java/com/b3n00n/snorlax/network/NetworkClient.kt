@@ -15,7 +15,7 @@ class NetworkClient(
 
     companion object {
         private const val TAG = "NetworkClient"
-        private const val RECONNECT_DELAY_MS = 5000L
+        private const val RECONNECT_DELAY_MS = 10000L
     }
 
     private val executor = Executors.newFixedThreadPool(2)
