@@ -78,3 +78,16 @@ class ADBManager:
         
     def start_activity(self, activity: str) -> Tuple[bool, str]:
         return self.run_command(["shell", "am", "start", "-n", activity])
+
+    def set_app_ops(self, package: str, operation: str, mode: str) -> Tuple[bool, str]:
+        """Grant app-ops permission to a package.
+
+        Args:
+            package: Package name (e.g., "com.b3n00n.snorlax")
+            operation: App-op name (e.g., "GET_USAGE_STATS", "MANAGE_EXTERNAL_STORAGE")
+            mode: Permission mode ("allow" or "deny")
+
+        Returns:
+            Tuple of (success, output)
+        """
+        return self.run_command(["shell", "appops", "set", package, operation, mode])

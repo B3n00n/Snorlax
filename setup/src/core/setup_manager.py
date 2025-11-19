@@ -112,11 +112,41 @@ class SetupManager:
                 logger.error(f"Failed to set device owner: {output}")
             return False
             
+    def grant_permissions(self) -> bool:
+        if self.should_cancel:
+            return False
+
+        logger.info("Granting app-ops for device management...")
+
+        app_ops = [
+            ("GET_USAGE_STATS", "Foreground app detection"),
+            ("MANAGE_EXTERNAL_STORAGE", "File system access"),
+            ("WRITE_SETTINGS", "System settings control"),
+            ("SYSTEM_ALERT_WINDOW", "Overlay windows"),
+            ("ACCESS_NOTIFICATIONS", "Monitor app notifications"),
+        ]
+
+        failed_ops = []
+        for op, description in app_ops:
+            success, output = self.adb.set_app_ops(PACKAGE_NAME, op, "allow")
+            if success:
+                logger.success(f"{op} success")
+            else:
+                logger.warning(f"{op} failed: {output}")
+                failed_ops.append(op)
+
+        if failed_ops:
+            logger.warning(f"Failed to grant {len(failed_ops)} app-ops, but continuing...")
+            return True
+
+        logger.success("All app-ops granted successfully")
+        return True
+
     def launch_snorlax(self) -> bool:
         logger.info("Launching Snorlax app...")
-        
+
         success, output = self.adb.start_activity(MAIN_ACTIVITY)
-        
+
         if success:
             logger.success("Snorlax app launched")
             return True
@@ -171,7 +201,10 @@ class SetupManager:
             if not self.set_device_owner():
                 logger.error("Setup failed at device owner step")
                 return False
-                
+
+            if not self.grant_permissions():
+                logger.warning("Some app-ops failed to grant, but continuing...")
+
             self.launch_snorlax()
             
             logger.success("Setup completed successfully!")
