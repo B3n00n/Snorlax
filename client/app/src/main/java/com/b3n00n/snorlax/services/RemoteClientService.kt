@@ -27,6 +27,7 @@ import com.b3n00n.snorlax.network.NetworkClient
 import com.b3n00n.snorlax.network.ProtocolSession
 import com.b3n00n.snorlax.network.WiFiConnectionManager
 import com.b3n00n.snorlax.network.WiFiStateMonitor
+import com.b3n00n.snorlax.monitoring.ForegroundAppMonitor
 import android.net.Network
 
 class RemoteClientService : Service() {
@@ -42,6 +43,7 @@ class RemoteClientService : Service() {
     private var protocolSession: ProtocolSession? = null
     private var wifiConnectionManager: WiFiConnectionManager? = null
     private var wifiStateMonitor: WiFiStateMonitor? = null
+    private var foregroundAppMonitor: ForegroundAppMonitor? = null
     private var isServiceRunning = false
     private lateinit var configManager: ServerConfigurationManager
     private lateinit var wifiConfigManager: WiFiConfigurationManager
@@ -74,8 +76,10 @@ class RemoteClientService : Service() {
 
         wifiConnectionManager = WiFiConnectionManager(this)
         wifiStateMonitor = WiFiStateMonitor(this)
+        foregroundAppMonitor = ForegroundAppMonitor(this)
 
         setupWiFiListeners()
+        setupForegroundAppListener()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -258,6 +262,15 @@ class RemoteClientService : Service() {
         })
     }
 
+    private fun setupForegroundAppListener() {
+        foregroundAppMonitor?.setListener(object : ForegroundAppMonitor.ForegroundAppListener {
+            override fun onForegroundAppChanged(packageName: String, appName: String) {
+                Log.i(TAG, "Foreground app changed: $appName ($packageName)")
+                protocolSession?.sendForegroundAppChanged(packageName, appName)
+            }
+        })
+    }
+
     private fun startConnectionManagement() {
         if (wifiConfigManager.hasWifiConfig()) {
             val ssid = wifiConfigManager.getWifiSsid()
@@ -273,6 +286,9 @@ class RemoteClientService : Service() {
             isWifiConnected = true
             startTcpConnection()
         }
+
+        // Start monitoring foreground apps
+        foregroundAppMonitor?.startMonitoring()
     }
 
     private fun startTcpConnection() {
@@ -319,6 +335,8 @@ class RemoteClientService : Service() {
 
         wifiStateMonitor?.stopMonitoring()
         wifiConnectionManager?.disconnect()
+
+        foregroundAppMonitor?.cleanup()
 
         Log.d(TAG, "All connections closed")
     }

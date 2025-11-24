@@ -82,4 +82,22 @@ class ProtocolSession(
             writeString(message)
         }
     }
+
+    /**
+     * Send foreground app change notification to the server.
+     *
+     * @param packageName The package name of the foreground app
+     * @param appName The human-readable name of the app
+     */
+    fun sendForegroundAppChanged(packageName: String, appName: String) {
+        try {
+            client.sendPacket(MessageOpcode.FOREGROUND_APP_CHANGED) {
+                writeString(packageName)
+                writeString(appName)
+            }
+            Log.d(TAG, "Sent foreground app changed: $appName ($packageName)")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error sending foreground app changed", e)
+        }
+    }
 }

@@ -15,6 +15,7 @@ object MessageOpcode {
     const val BATTERY_STATUS: Byte = 0x03
     const val VOLUME_STATUS: Byte = 0x04
     const val ERROR: Byte = 0x05
+    const val FOREGROUND_APP_CHANGED: Byte = 0x06
 
     // =============================================================================
     // CLIENT → SERVER (Responses to server commands) - 0x10-0x16
