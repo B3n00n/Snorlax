@@ -77,7 +77,17 @@ class MainWindow:
             command=self.start_setup
         )
         self.start_btn.pack(side="left", padx=(0, 5))
-        
+
+        self.grant_perms_btn = ctk.CTkButton(
+            left_frame, text="Grant Permissions", width=140,
+            font=self.fonts['button'],
+            fg_color="#FFA500",
+            hover_color="#FF8C00",
+            text_color="white",
+            command=self.grant_permissions_only
+        )
+        self.grant_perms_btn.pack(side="left", padx=(0, 5))
+
         self.cancel_btn = ctk.CTkButton(
             left_frame, text="Cancel", width=120,
             font=self.fonts['button'],
@@ -107,15 +117,21 @@ class MainWindow:
         try:
             if self.adb_path != self.setup_manager.adb.adb_path:
                 self.setup_manager = SetupManager(self.adb_path)
-                
+
             status = self.setup_manager.device.get_device_status()
             self.status_frame.update_status(status)
-            
+
             if status['connected'] and not status['is_device_owner']:
                 self.start_btn.configure(state="normal")
             else:
                 self.start_btn.configure(state="disabled")
-                
+
+            # Enable Grant Permissions button if connected and package is installed
+            if status['connected'] and status['package_installed']:
+                self.grant_perms_btn.configure(state="normal")
+            else:
+                self.grant_perms_btn.configure(state="disabled")
+
         except Exception as e:
             logger.error(f"Failed to refresh status: {str(e)}")
             
@@ -132,18 +148,36 @@ class MainWindow:
     def run_setup(self):
         self.setup_manager.set_progress_callback(self.setup_progress_callback)
         success = self.setup_manager.run_setup(skip_quest_check=False)
-        
+
         self.root.after(0, lambda: self.setup_complete(success))
-        
+
+    def run_grant_permissions(self):
+        success = self.setup_manager.grant_permissions_only()
+
+        self.root.after(0, lambda: self.grant_permissions_complete(success))
+
     def start_setup(self):
         self.start_btn.configure(state="disabled")
+        self.grant_perms_btn.configure(state="disabled")
         self.cancel_btn.configure(state="normal")
         self.status_frame.refresh_btn.configure(state="disabled")
         self.advanced_btn.configure(state="disabled")
-        
+
         self.progress_frame.update_progress("Starting setup...", 0)
-        
+
         self.setup_thread = threading.Thread(target=self.run_setup, daemon=True)
+        self.setup_thread.start()
+
+    def grant_permissions_only(self):
+        self.start_btn.configure(state="disabled")
+        self.grant_perms_btn.configure(state="disabled")
+        self.cancel_btn.configure(state="normal")
+        self.status_frame.refresh_btn.configure(state="disabled")
+        self.advanced_btn.configure(state="disabled")
+
+        self.progress_frame.update_progress("Granting permissions...", 0)
+
+        self.setup_thread = threading.Thread(target=self.run_grant_permissions, daemon=True)
         self.setup_thread.start()
         
     def cancel_setup(self):
@@ -158,12 +192,26 @@ class MainWindow:
         self.cancel_btn.configure(state="disabled")
         self.status_frame.refresh_btn.configure(state="normal")
         self.advanced_btn.configure(state="normal")
-        
+
         if success:
             self.progress_frame.update_progress("Setup completed successfully!", 100)
         else:
             self.progress_frame.update_progress("Setup failed", 0)
-            
+
+        self.refresh_status()
+
+    def grant_permissions_complete(self, success: bool):
+        self.start_btn.configure(state="normal")
+        self.grant_perms_btn.configure(state="normal")
+        self.cancel_btn.configure(state="disabled")
+        self.status_frame.refresh_btn.configure(state="normal")
+        self.advanced_btn.configure(state="normal")
+
+        if success:
+            self.progress_frame.update_progress("Permissions granted successfully!", 100)
+        else:
+            self.progress_frame.update_progress("Permission granting failed", 0)
+
         self.refresh_status()
         
     def show_advanced_settings(self):

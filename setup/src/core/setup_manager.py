@@ -162,14 +162,19 @@ class SetupManager:
             except Exception as e:
                 logger.warning(f"Failed to clean up temp file: {e}")
                 
-    def run_setup(self, skip_quest_check: bool = False) -> bool:
+    def grant_permissions_only(self) -> bool:
+        """Grant app-ops permissions without setting device owner.
+
+        This is useful when device owner cannot be set (e.g., device has accounts).
+        The app must already be installed.
+        """
         self.should_cancel = False
-        
+
         try:
             if not self.adb.check_available():
                 logger.error("ADB is not available")
                 return False
-                
+
             devices = self.adb.get_connected_devices()
             if not devices:
                 logger.error("No ADB devices found")
@@ -177,27 +182,60 @@ class SetupManager:
             elif len(devices) > 1:
                 logger.error("Multiple devices found. Please connect only one device.")
                 return False
-                
+
             logger.success(f"Found device: {devices[0]}")
-            
+
+            if not self.device.check_package_installed():
+                logger.error("Snorlax is not installed. Install the app first.")
+                return False
+
+            if not self.grant_permissions():
+                logger.error("Failed to grant app-ops permissions")
+                return False
+
+            logger.success("Permissions granted successfully!")
+            logger.info("Note: Device owner was NOT set. Some features may not work.")
+            return True
+
+        finally:
+            pass
+
+    def run_setup(self, skip_quest_check: bool = False) -> bool:
+        self.should_cancel = False
+
+        try:
+            if not self.adb.check_available():
+                logger.error("ADB is not available")
+                return False
+
+            devices = self.adb.get_connected_devices()
+            if not devices:
+                logger.error("No ADB devices found")
+                return False
+            elif len(devices) > 1:
+                logger.error("Multiple devices found. Please connect only one device.")
+                return False
+
+            logger.success(f"Found device: {devices[0]}")
+
             if not skip_quest_check and not self.device.is_quest_device():
                 logger.warning("This doesn't appear to be a Quest device")
                 return False
-                
+
             if self.device.check_package_installed():
                 logger.warning("Snorlax is already installed")
-                
+
                 if self.device.check_device_owner():
                     logger.success("Snorlax is already set as device owner!")
                     logger.info("Setup complete - no changes needed")
                     return True
-                    
+
             if not self.download_apk():
                 return False
-                
+
             if not self.install_apk():
                 return False
-                
+
             if not self.set_device_owner():
                 logger.error("Setup failed at device owner step")
                 return False
@@ -206,9 +244,9 @@ class SetupManager:
                 logger.warning("Some app-ops failed to grant, but continuing...")
 
             self.launch_snorlax()
-            
+
             logger.success("Setup completed successfully!")
             return True
-            
+
         finally:
             self.cleanup()
