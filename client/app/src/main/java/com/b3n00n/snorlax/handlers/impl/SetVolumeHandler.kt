@@ -29,15 +29,12 @@ class SetVolumeHandler : IPacketHandler {
             val context = ClientContext.context
             val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
             val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-            val targetVolume = (level * maxVolume / 100).coerceIn(0, maxVolume)
+
+            val targetVolume = kotlin.math.round(level * maxVolume / 100.0).toInt().coerceIn(0, maxVolume)
 
             audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, targetVolume, 0)
 
-            val actualVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
-            val actualPercentage = if (maxVolume > 0) (actualVolume * 100 / maxVolume) else 0
-
-            Log.d(TAG, "Volume set to $actualPercentage%")
-            true to "Volume set to $actualPercentage%"
+            true to "Volume set to $level%"
         } catch (e: Exception) {
             Log.e(TAG, "Error setting volume", e)
             false to "Error: ${e.message}"
