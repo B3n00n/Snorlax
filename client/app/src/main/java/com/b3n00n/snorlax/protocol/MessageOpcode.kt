@@ -30,6 +30,8 @@ object MessageOpcode {
     const val VOLUME_SET_RESPONSE: Byte = 0x16
     const val APK_DOWNLOAD_STARTED: Byte = 0x17
     const val CLOSE_ALL_APPS_RESPONSE: Byte = 0x18
+    const val APK_DOWNLOAD_PROGRESS: Byte = 0x19
+    const val APK_INSTALL_PROGRESS: Byte = 0x1A
 
     // =============================================================================
     // SERVER → CLIENT (Commands from server) - 0x40-0x4C
