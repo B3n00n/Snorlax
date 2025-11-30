@@ -3,9 +3,7 @@ package com.b3n00n.snorlax.protocol
 import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
 import java.io.IOException
-import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets
-import java.util.UUID
 
 class PacketWriter {
     private val byteStream = ByteArrayOutputStream()
@@ -53,19 +51,6 @@ class PacketWriter {
     @Throws(IOException::class)
     fun writeBytes(bytes: ByteArray) {
         dataStream.write(bytes)
-    }
-
-    @Throws(IOException::class)
-    fun writeFloat(value: Float) {
-        dataStream.writeFloat(value)
-    }
-
-    @Throws(IOException::class)
-    fun writeUUID(uuid: UUID) {
-        val buffer = ByteBuffer.allocate(16)
-        buffer.putLong(uuid.mostSignificantBits)
-        buffer.putLong(uuid.leastSignificantBits)
-        dataStream.write(buffer.array())
     }
 
     fun toByteArray(): ByteArray {
