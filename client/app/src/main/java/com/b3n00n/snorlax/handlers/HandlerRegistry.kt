@@ -26,6 +26,8 @@ class HandlerRegistry {
         register(InstallApkHandler())
         register(InstallLocalApkHandler())
         register(CloseAllAppsHandler())
+        register(ConfigureDeviceHandler())
+        register(ClearWifiCredentialsHandler())
         register(DisplayMessageHandler())
 
         Log.d(TAG, "Registered ${handlers.size} handlers")

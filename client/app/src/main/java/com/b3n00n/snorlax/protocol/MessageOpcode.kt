@@ -49,5 +49,7 @@ object MessageOpcode {
     const val SET_VOLUME: Byte = 0x4A
     const val GET_VOLUME: Byte = 0x4B
     const val CLOSE_ALL_APPS: Byte = 0x4C
+    const val CONFIGURE_DEVICE: Byte = 0x4D
+    const val CLEAR_WIFI_CREDENTIALS: Byte = 0x4E
     const val DISPLAY_MESSAGE: Byte = 0x50
 }
