@@ -28,6 +28,7 @@ import com.b3n00n.snorlax.network.ProtocolSession
 import com.b3n00n.snorlax.network.WiFiConnectionManager
 import com.b3n00n.snorlax.network.WiFiStateMonitor
 import com.b3n00n.snorlax.monitoring.ForegroundAppMonitor
+import com.b3n00n.snorlax.utils.SoundManager
 import android.net.Network
 
 class RemoteClientService : Service() {
@@ -59,6 +60,7 @@ class RemoteClientService : Service() {
         Log.d(TAG, "Service created")
 
         ClientContext.initialize(this)
+        SoundManager.initialize(this)
 
         createNotificationChannel()
         configManager = ServerConfigurationManager(this)
@@ -337,6 +339,7 @@ class RemoteClientService : Service() {
         wifiConnectionManager?.disconnect()
 
         foregroundAppMonitor?.cleanup()
+        SoundManager.release()
 
         Log.d(TAG, "All connections closed")
     }

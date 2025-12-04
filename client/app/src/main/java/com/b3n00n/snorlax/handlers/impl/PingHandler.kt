@@ -1,13 +1,13 @@
 package com.b3n00n.snorlax.handlers.impl
 
-import android.media.AudioManager
-import android.media.ToneGenerator
 import android.util.Log
+import com.b3n00n.snorlax.R
 import com.b3n00n.snorlax.handlers.IPacketHandler
 import com.b3n00n.snorlax.handlers.PacketHandler
 import com.b3n00n.snorlax.network.NetworkClient
 import com.b3n00n.snorlax.protocol.MessageOpcode
 import com.b3n00n.snorlax.protocol.PacketReader
+import com.b3n00n.snorlax.utils.SoundManager
 
 /**
  * Handles Ping command (0x45): [timestamp: u64]
@@ -24,23 +24,8 @@ class PingHandler : IPacketHandler {
 
         Log.d(TAG, "Ping received: $timestamp")
 
-        // Play notification sound asynchronously to avoid blocking
-        try {
-            Thread {
-                try {
-                    val toneGen = ToneGenerator(AudioManager.STREAM_NOTIFICATION, 100)
-                    toneGen.startTone(ToneGenerator.TONE_PROP_BEEP, 150)
-                    Thread.sleep(200) // Wait for tone to finish
-                    toneGen.release()
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error in tone thread", e)
-                }
-            }.start()
-        } catch (e: Exception) {
-            Log.e(TAG, "Error playing tone", e)
-        }
+        SoundManager.play(R.raw.ping_sound)
 
-        // Send response (echo timestamp)
         client.sendPacket(MessageOpcode.PING_RESPONSE) {
             writeU64(timestamp)
         }
