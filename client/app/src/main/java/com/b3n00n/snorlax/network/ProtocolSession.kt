@@ -1,6 +1,7 @@
 package com.b3n00n.snorlax.network
 
 import android.util.Log
+import com.b3n00n.snorlax.config.SnorlaxConfigManager
 import com.b3n00n.snorlax.core.ClientContext
 import com.b3n00n.snorlax.handlers.HandlerRegistry
 import com.b3n00n.snorlax.protocol.MessageOpcode
@@ -65,8 +66,9 @@ class ProtocolSession(
             client.sendPacket(MessageOpcode.DEVICE_CONNECTED) {
                 writeString(deviceInfo.model)
                 writeString(deviceInfo.serial)
+                writeString(SnorlaxConfigManager.APP_VERSION)
             }
-            Log.d(TAG, "Sent device connected: ${deviceInfo.model} (${deviceInfo.serial})")
+            Log.d(TAG, "Sent device connected: ${deviceInfo.model} (${deviceInfo.serial}) v${SnorlaxConfigManager.APP_VERSION}")
         } catch (e: Exception) {
             Log.e(TAG, "Error sending device connected", e)
         }
