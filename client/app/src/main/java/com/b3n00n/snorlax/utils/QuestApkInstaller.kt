@@ -55,23 +55,6 @@ object QuestApkInstaller {
             return@withContext InstallResult.Error("Cannot read package name from APK")
         }
 
-        // Check if package is already installed and remove it
-        if (isPackageInstalled(context, packageName)) {
-            Log.d(TAG, "Package $packageName already installed, removing it first...")
-            val uninstallResult = uninstallApkAsync(context, packageName)
-
-            when (uninstallResult) {
-                is UninstallResult.Success -> {
-                    Log.d(TAG, "Successfully uninstalled existing package: ${uninstallResult.message}")
-                    // Give system time to process the uninstallation
-                    delay(500)
-                }
-                is UninstallResult.Error -> {
-                    Log.w(TAG, "Failed to uninstall existing package: ${uninstallResult.message}, proceeding anyway...")
-                }
-            }
-        }
-
         val installResult = installSilentlyAsync(context, apkFile)
 
         if (installResult is InstallResult.Success && autoGrantPermissions) {
