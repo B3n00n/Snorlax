@@ -59,16 +59,19 @@ class ProtocolSession(
     /**
      * Send device connection notification with device info.
      * Called once after connecting to the server.
+     *
+     * Packet format: [version][model][serial]
+     * Note: Version is sent first to enable automatic client updates even when packet format changes.
      */
     private fun sendDeviceConnected() {
         try {
             val deviceInfo = ClientContext.deviceInfo
             client.sendPacket(MessageOpcode.DEVICE_CONNECTED) {
+                writeString(SnorlaxConfigManager.APP_VERSION)
                 writeString(deviceInfo.model)
                 writeString(deviceInfo.serial)
-                writeString(SnorlaxConfigManager.APP_VERSION)
             }
-            Log.d(TAG, "Sent device connected: ${deviceInfo.model} (${deviceInfo.serial}) v${SnorlaxConfigManager.APP_VERSION}")
+            Log.d(TAG, "Sent device connected: v${SnorlaxConfigManager.APP_VERSION} ${deviceInfo.model} (${deviceInfo.serial})")
         } catch (e: Exception) {
             Log.e(TAG, "Error sending device connected", e)
         }
