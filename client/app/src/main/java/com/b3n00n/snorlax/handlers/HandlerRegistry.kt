@@ -14,6 +14,7 @@ class HandlerRegistry {
     private val handlers = mutableMapOf<Byte, IPacketHandler>()
 
     init {
+        register(VersionOkHandler())
         register(PingHandler())
         register(LaunchAppHandler())
         register(ExecuteShellHandler())

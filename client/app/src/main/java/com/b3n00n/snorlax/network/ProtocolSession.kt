@@ -29,8 +29,8 @@ class ProtocolSession(
     }
 
     override fun onConnected() {
-        Log.d(TAG, "Protocol session started")
-        sendDeviceConnected()
+        Log.d(TAG, "Protocol session started - initiating version check")
+        sendVersionCheck()
     }
 
     override fun onDisconnected() {
@@ -56,24 +56,14 @@ class ProtocolSession(
         }
     }
 
-    /**
-     * Send device connection notification with device info.
-     * Called once after connecting to the server.
-     *
-     * Packet format: [version][model][serial]
-     * Note: Version is sent first to enable automatic client updates even when packet format changes.
-     */
-    private fun sendDeviceConnected() {
+    private fun sendVersionCheck() {
         try {
-            val deviceInfo = ClientContext.deviceInfo
-            client.sendPacket(MessageOpcode.DEVICE_CONNECTED) {
+            client.sendPacket(MessageOpcode.VERSION_CHECK) {
                 writeString(SnorlaxConfigManager.APP_VERSION)
-                writeString(deviceInfo.model)
-                writeString(deviceInfo.serial)
             }
-            Log.d(TAG, "Sent device connected: v${SnorlaxConfigManager.APP_VERSION} ${deviceInfo.model} (${deviceInfo.serial})")
+            Log.i(TAG, "Sent VERSION_CHECK: v${SnorlaxConfigManager.APP_VERSION}")
         } catch (e: Exception) {
-            Log.e(TAG, "Error sending device connected", e)
+            Log.e(TAG, "Error sending VERSION_CHECK", e)
         }
     }
 
