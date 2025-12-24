@@ -19,8 +19,9 @@ class PermissionManager(private val context: Context) {
             "android.permission.BLUETOOTH",
             "android.permission.BLUETOOTH_SCAN",
             "android.permission.BLUETOOTH_ADVERTISE",
-            "android.permission.BLUETOOTH_CONNECT"
-        )
+            "android.permission.BLUETOOTH_CONNECT",
+            "com.oculus.permission.HAND_TRACKING",
+            )
     }
 
     private val devicePolicyManager = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
