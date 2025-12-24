@@ -28,6 +28,7 @@ import com.b3n00n.snorlax.network.ProtocolSession
 import com.b3n00n.snorlax.network.WiFiConnectionManager
 import com.b3n00n.snorlax.network.WiFiStateMonitor
 import com.b3n00n.snorlax.monitoring.ForegroundAppMonitor
+import com.b3n00n.snorlax.monitoring.TemporaryOculusClearActivityWorkaround
 import com.b3n00n.snorlax.utils.SoundManager
 import android.net.Network
 
@@ -45,6 +46,7 @@ class RemoteClientService : Service() {
     private var wifiConnectionManager: WiFiConnectionManager? = null
     private var wifiStateMonitor: WiFiStateMonitor? = null
     private var foregroundAppMonitor: ForegroundAppMonitor? = null
+    private var oculusWorkaround: TemporaryOculusClearActivityWorkaround? = null // TODO: REMOVE THIS TEMPORARY WORKAROUND
     private var isServiceRunning = false
     private lateinit var configManager: ServerConfigurationManager
     private lateinit var wifiConfigManager: WiFiConfigurationManager
@@ -79,6 +81,7 @@ class RemoteClientService : Service() {
         wifiConnectionManager = WiFiConnectionManager(this)
         wifiStateMonitor = WiFiStateMonitor(this)
         foregroundAppMonitor = ForegroundAppMonitor(this)
+        oculusWorkaround = TemporaryOculusClearActivityWorkaround(this) // TODO: REMOVE THIS TEMPORARY WORKAROUND
 
         setupWiFiListeners()
         setupForegroundAppListener()
@@ -291,6 +294,9 @@ class RemoteClientService : Service() {
 
         // Start monitoring foreground apps
         foregroundAppMonitor?.startMonitoring()
+
+        // TODO: REMOVE THIS TEMPORARY WORKAROUND
+        oculusWorkaround?.startMonitoring()
     }
 
     private fun startTcpConnection() {
@@ -339,6 +345,7 @@ class RemoteClientService : Service() {
         wifiConnectionManager?.disconnect()
 
         foregroundAppMonitor?.cleanup()
+        oculusWorkaround?.cleanup() // TODO: REMOVE THIS TEMPORARY WORKAROUND
         SoundManager.release()
 
         Log.d(TAG, "All connections closed")

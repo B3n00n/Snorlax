@@ -31,7 +31,7 @@ class LaunchAppHandler : IPacketHandler {
             val context = ClientContext.context
             val intent = context.packageManager.getLaunchIntentForPackage(packageName)
             if (intent != null) {
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
                 context.startActivity(intent)
                 success = true
                 message = "Launched $packageName"
