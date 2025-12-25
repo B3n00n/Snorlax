@@ -5,7 +5,9 @@ import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import android.view.KeyEvent
 import kotlinx.coroutines.*
+import java.io.IOException
 
 /**
  * !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -124,6 +126,25 @@ class TemporaryOculusClearActivityWorkaround(
             } catch (e: Exception) {
                 Log.e(TAG, "[TEMP WORKAROUND] Error relaunching app (attempt ${attempt + 1})", e)
             }
+        }
+
+        // Simulate Oculus home button press once
+        simulateOculusButtonPress()
+    }
+
+    private fun simulateOculusButtonPress() {
+        try {
+            // KEY_FORWARD (keycode 125) - Oculus home button on controller
+            val oculusHomeKeyCode = 125
+
+            Log.d(TAG, "[TEMP WORKAROUND] Simulating Oculus home button (KEY_FORWARD / $oculusHomeKeyCode)...")
+
+            val process = Runtime.getRuntime().exec(arrayOf("input", "keyevent", oculusHomeKeyCode.toString()))
+            process.waitFor()
+
+            Log.i(TAG, "[TEMP WORKAROUND] Sent Oculus home button keyevent")
+        } catch (e: Exception) {
+            Log.e(TAG, "[TEMP WORKAROUND] Error simulating Oculus button press", e)
         }
     }
 
