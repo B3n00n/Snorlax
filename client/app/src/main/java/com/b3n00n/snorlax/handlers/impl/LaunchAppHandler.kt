@@ -2,12 +2,14 @@ package com.b3n00n.snorlax.handlers.impl
 
 import android.content.Intent
 import android.util.Log
+import com.b3n00n.snorlax.R
 import com.b3n00n.snorlax.core.ClientContext
 import com.b3n00n.snorlax.handlers.IPacketHandler
 import com.b3n00n.snorlax.handlers.PacketHandler
 import com.b3n00n.snorlax.network.NetworkClient
 import com.b3n00n.snorlax.protocol.MessageOpcode
 import com.b3n00n.snorlax.protocol.PacketReader
+import com.b3n00n.snorlax.utils.SoundManager
 
 /**
  * Handles LaunchApp command (0x40): [package_name: String]
@@ -35,6 +37,7 @@ class LaunchAppHandler : IPacketHandler {
                 context.startActivity(intent)
                 success = true
                 message = "Launched $packageName"
+                SoundManager.play(R.raw.launch_app_sound)
             } else {
                 message = "No launch intent for $packageName"
             }

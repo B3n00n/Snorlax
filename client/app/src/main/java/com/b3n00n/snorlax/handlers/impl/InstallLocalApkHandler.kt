@@ -1,6 +1,7 @@
 package com.b3n00n.snorlax.handlers.impl
 
 import android.util.Log
+import com.b3n00n.snorlax.R
 import com.b3n00n.snorlax.core.BackgroundJobs
 import com.b3n00n.snorlax.core.ClientContext
 import com.b3n00n.snorlax.handlers.IPacketHandler
@@ -9,6 +10,7 @@ import com.b3n00n.snorlax.network.NetworkClient
 import com.b3n00n.snorlax.protocol.MessageOpcode
 import com.b3n00n.snorlax.protocol.PacketReader
 import com.b3n00n.snorlax.utils.QuestApkInstaller
+import com.b3n00n.snorlax.utils.SoundManager
 import java.io.File
 import java.io.FileOutputStream
 import java.net.HttpURLConnection
@@ -44,6 +46,9 @@ class InstallLocalApkHandler : IPacketHandler {
                 client.sendPacket(MessageOpcode.APK_INSTALL_RESPONSE) {
                     writeU8(if (success) 1 else 0)
                     writeString(message)
+
+                    if (success) SoundManager.play(R.raw.download_start_sound)
+                    else SoundManager.play(R.raw.error01_sound)
                 }
                 Log.d(TAG, "Sent install response: success=$success")
             } catch (e: Exception) {
@@ -83,6 +88,7 @@ class InstallLocalApkHandler : IPacketHandler {
             return when (val result = QuestApkInstaller.installApkAsync(context, tempFile, autoGrantPermissions = true)) {
                 is QuestApkInstaller.InstallResult.Success -> {
                     tempFile.delete()
+                    SoundManager.play(R.raw.install_complete_sound)
                     true to result.message
                 }
                 is QuestApkInstaller.InstallResult.Error -> {

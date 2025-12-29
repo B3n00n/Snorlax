@@ -3,12 +3,14 @@ package com.b3n00n.snorlax.handlers.impl
 import android.content.Context
 import android.media.AudioManager
 import android.util.Log
+import com.b3n00n.snorlax.R
 import com.b3n00n.snorlax.core.ClientContext
 import com.b3n00n.snorlax.handlers.IPacketHandler
 import com.b3n00n.snorlax.handlers.PacketHandler
 import com.b3n00n.snorlax.network.NetworkClient
 import com.b3n00n.snorlax.protocol.MessageOpcode
 import com.b3n00n.snorlax.protocol.PacketReader
+import com.b3n00n.snorlax.utils.SoundManager
 
 /**
  * Handles SetVolume command (0x4A): [level: u8]
@@ -33,6 +35,7 @@ class SetVolumeHandler : IPacketHandler {
             val targetVolume = kotlin.math.round(level * maxVolume / 100.0).toInt().coerceIn(0, maxVolume)
 
             audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, targetVolume, 0)
+            SoundManager.play(R.raw.volume_set_sound)
 
             true to "Volume set to $level%"
         } catch (e: Exception) {
