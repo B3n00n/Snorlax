@@ -14,6 +14,7 @@ import com.b3n00n.snorlax.handlers.PacketHandler
 import com.b3n00n.snorlax.network.NetworkClient
 import com.b3n00n.snorlax.protocol.MessageOpcode
 import com.b3n00n.snorlax.protocol.PacketReader
+import com.b3n00n.snorlax.utils.SoundManager
 
 /**
  * Handles DisplayMessage command (0x50): [message: String]
@@ -36,6 +37,7 @@ class DisplayMessageHandler : IPacketHandler {
             val context = ClientContext.context
             ensureNotificationChannel(context)
             showNotification(context, message)
+            SoundManager.play(R.raw.message_sound)
 
             Log.d(TAG, "Notification displayed successfully")
         } catch (e: Exception) {

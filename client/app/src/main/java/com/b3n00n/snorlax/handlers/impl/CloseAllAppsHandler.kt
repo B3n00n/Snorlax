@@ -4,6 +4,7 @@ import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
 import android.util.Log
+import com.b3n00n.snorlax.R
 import com.b3n00n.snorlax.core.ClientContext
 import com.b3n00n.snorlax.handlers.IPacketHandler
 import com.b3n00n.snorlax.handlers.PacketHandler
@@ -11,6 +12,7 @@ import com.b3n00n.snorlax.network.NetworkClient
 import com.b3n00n.snorlax.protocol.MessageOpcode
 import com.b3n00n.snorlax.protocol.PacketReader
 import com.b3n00n.snorlax.receivers.DeviceOwnerReceiver
+import com.b3n00n.snorlax.utils.SoundManager
 
 /**
  * Handles CloseAllApps command (0x4C): empty payload
@@ -45,6 +47,8 @@ class CloseAllAppsHandler : IPacketHandler {
                     writeU8(0)
                     writeString(message)
                     writeU32(0)
+
+                    SoundManager.play(R.raw.close_all_apps_sound)
                 }
                 return
             }

@@ -1,6 +1,7 @@
 package com.b3n00n.snorlax.handlers.impl
 
 import android.util.Log
+import com.b3n00n.snorlax.R
 import com.b3n00n.snorlax.core.BackgroundJobs
 import com.b3n00n.snorlax.core.ClientContext
 import com.b3n00n.snorlax.handlers.IPacketHandler
@@ -9,6 +10,7 @@ import com.b3n00n.snorlax.network.NetworkClient
 import com.b3n00n.snorlax.protocol.MessageOpcode
 import com.b3n00n.snorlax.protocol.PacketReader
 import com.b3n00n.snorlax.utils.QuestApkInstaller
+import com.b3n00n.snorlax.utils.SoundManager
 import kotlinx.coroutines.async
 import java.io.File
 import java.io.FileOutputStream
@@ -82,6 +84,8 @@ class InstallApkHandler : IPacketHandler {
 
             sendProgress(client, operationId, stage = 0, percentage = 0f, MessageOpcode.APK_DOWNLOAD_PROGRESS)
 
+            SoundManager.play(R.raw.download_start_sound)
+
             var bytesDownloaded = 0L
             FileOutputStream(tempFile).use { output ->
                 connection.inputStream.use { input ->
@@ -113,6 +117,8 @@ class InstallApkHandler : IPacketHandler {
 
             delay(100)
 
+            SoundManager.play(R.raw.download_complete_sound)
+
             sendProgress(client, operationId, stage = 0, percentage = 0f, MessageOpcode.APK_INSTALL_PROGRESS)
 
             val installResult = installApkWithProgress(context, tempFile, client, operationId)
@@ -121,11 +127,13 @@ class InstallApkHandler : IPacketHandler {
                 is QuestApkInstaller.InstallResult.Success -> {
                     sendProgress(client, operationId, stage = 2, percentage = 100f, MessageOpcode.APK_INSTALL_PROGRESS)
                     tempFile.delete()
+                    SoundManager.play(R.raw.install_complete_sound)
                     true to installResult.message
                 }
                 is QuestApkInstaller.InstallResult.Error -> {
                     sendProgress(client, operationId, stage = 3, percentage = 0f, MessageOpcode.APK_INSTALL_PROGRESS)
                     tempFile.delete()
+                    SoundManager.play(R.raw.error01_sound)
                     false to installResult.message
                 }
             }
