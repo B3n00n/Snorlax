@@ -151,9 +151,11 @@ class AdvancedDialog(ctk.CTkToplevel):
         self.current_adb_path = current_adb_path
         
         self.transient(parent)
-        self.grab_set()
-        
+
         self.create_widgets()
+
+        self.wait_visibility()
+        self.grab_set()
         
     def create_widgets(self):
         title = ctk.CTkLabel(self, text="Advanced Settings", font=self.fonts['subheading'])

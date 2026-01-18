@@ -2,6 +2,7 @@ import customtkinter as ctk
 import threading
 import os
 from typing import Optional
+from tkinter import PhotoImage
 
 from config import WINDOW_TITLE, ADB_PATH
 from .themes import apply_theme, get_fonts, get_colors
@@ -32,9 +33,13 @@ class MainWindow:
         self.setup_logger()
         self.refresh_status()
         
-        icon_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'assets', 'icon.ico'))
+        icon_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'assets', 'icon.png'))
         if os.path.exists(icon_path):
-            self.root.iconbitmap(icon_path)
+            try:
+                icon = PhotoImage(file=icon_path)
+                self.root.iconphoto(True, icon)
+            except Exception as e:
+                logger.warning(f"Could not load icon: {e}")
         
     def create_widgets(self):
         row = 0
