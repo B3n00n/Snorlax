@@ -46,7 +46,7 @@
 
           shellHook = ''
             echo "Launched Snorlax Setup Dev Environment"
-            echo "Python version: ${pythonEnv.interpreter.version}"
+            echo "Python: $(python --version)"
             echo ""
             echo "Available commands:"
             echo "  python main.py              - Run the GUI setup tool"
