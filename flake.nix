@@ -18,6 +18,7 @@
           customtkinter
           pillow
           pyinstaller
+          tkinter
         ]);
 
         # Windows build tools
