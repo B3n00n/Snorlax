@@ -3,7 +3,6 @@ package com.b3n00n.snorlax.monitoring
 import android.app.usage.UsageEvents
 import android.app.usage.UsageStatsManager
 import android.content.Context
-import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.util.Log
 import kotlinx.coroutines.*
@@ -20,6 +19,10 @@ class ForegroundAppMonitor(
         private const val TAG = "ForegroundAppMonitor"
         private const val POLL_INTERVAL_MS = 1000L // Check every 1 second
         private const val QUERY_WINDOW_MS = 3000L // Query events from last 3 seconds
+
+        private val IGNORED_PACKAGES = setOf(
+            "com.oculus.vrshell"
+        )
     }
 
     private var usageStatsManager: UsageStatsManager? = null
@@ -79,7 +82,6 @@ class ForegroundAppMonitor(
 
                         Log.d(TAG, "Foreground app changed: $appName ($foregroundApp)")
 
-                        // Notify listener on main thread if needed, or keep it on background thread
                         withContext(Dispatchers.Main) {
                             listener?.onForegroundAppChanged(foregroundApp, appName)
                         }
@@ -177,7 +179,9 @@ class ForegroundAppMonitor(
             usageEvents.getNextEvent(event)
 
             // Look for the most recent MOVE_TO_FOREGROUND event
-            if (event.eventType == UsageEvents.Event.MOVE_TO_FOREGROUND && event.timeStamp > latestTimestamp) {
+            if (event.eventType == UsageEvents.Event.MOVE_TO_FOREGROUND
+                && event.timeStamp > latestTimestamp
+                && event.packageName !in IGNORED_PACKAGES) {
                 foregroundApp = event.packageName
                 latestTimestamp = event.timeStamp
             }
