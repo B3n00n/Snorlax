@@ -32,6 +32,8 @@ class ForegroundAppMonitor(
     private val monitoringScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     private var monitoringJob: Job? = null
 
+    data class ForegroundAppInfo(val packageName: String, val appName: String)
+
     interface ForegroundAppListener {
         /**
          * Called when the foreground app changes
@@ -127,6 +129,19 @@ class ForegroundAppMonitor(
      */
     fun getCurrentForegroundApp(): String? {
         return currentForegroundApp
+    }
+
+    /**
+     * Performs a fresh query to determine the current foreground application.
+     * Unlike [getCurrentForegroundApp], this does not rely on cached state from the polling loop.
+     * Safe to call from any thread.
+     * @return The foreground app info (package name + human-readable name), or null if unable to determine
+     */
+    fun queryCurrentForegroundAppInfo(): ForegroundAppInfo? {
+        if (!hasUsageStatsPermission()) return null
+        val packageName = getForegroundApp() ?: return null
+        val appName = getAppName(packageName)
+        return ForegroundAppInfo(packageName, appName)
     }
 
     /**

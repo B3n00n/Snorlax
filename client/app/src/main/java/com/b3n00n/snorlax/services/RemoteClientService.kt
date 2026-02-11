@@ -80,7 +80,7 @@ class RemoteClientService : Service() {
 
         wifiConnectionManager = WiFiConnectionManager(this)
         wifiStateMonitor = WiFiStateMonitor(this)
-        foregroundAppMonitor = ForegroundAppMonitor(this)
+        foregroundAppMonitor = ClientContext.foregroundAppMonitor
         oculusWorkaround = TemporaryOculusClearActivityWorkaround(this) // TODO: REMOVE THIS TEMPORARY WORKAROUND
 
         setupWiFiListeners()

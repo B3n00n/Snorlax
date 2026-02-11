@@ -2,6 +2,7 @@ package com.b3n00n.snorlax.core
 
 import android.content.Context
 import com.b3n00n.snorlax.models.DeviceInfo
+import com.b3n00n.snorlax.monitoring.ForegroundAppMonitor
 
 /**
  * Global context holder for the Snorlax client application.
@@ -13,6 +14,7 @@ import com.b3n00n.snorlax.models.DeviceInfo
 object ClientContext {
     private var _context: Context? = null
     private var _deviceInfo: DeviceInfo? = null
+    private var _foregroundAppMonitor: ForegroundAppMonitor? = null
 
     /**
      * Initialize the client context. Must be called once during application startup.
@@ -20,6 +22,7 @@ object ClientContext {
     fun initialize(context: Context) {
         _context = context.applicationContext
         _deviceInfo = DeviceInfo(context)
+        _foregroundAppMonitor = ForegroundAppMonitor(context.applicationContext)
     }
 
     /**
@@ -36,4 +39,6 @@ object ClientContext {
     val deviceInfo: DeviceInfo
         get() = _deviceInfo ?: throw IllegalStateException("ClientContext not initialized")
 
+    val foregroundAppMonitor: ForegroundAppMonitor
+        get() = _foregroundAppMonitor ?: throw IllegalStateException("ClientContext not initialized")
 }

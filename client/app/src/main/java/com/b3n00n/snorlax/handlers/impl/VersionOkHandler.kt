@@ -32,11 +32,19 @@ class VersionOkHandler : IPacketHandler {
     private fun sendDeviceConnected(client: NetworkClient) {
         try {
             val deviceInfo = ClientContext.deviceInfo
+            val foregroundApp = ClientContext.foregroundAppMonitor.queryCurrentForegroundAppInfo()
+
             client.sendPacket(MessageOpcode.DEVICE_CONNECTED) {
                 writeString(deviceInfo.model)
                 writeString(deviceInfo.serial)
+                writeString(foregroundApp?.appName ?: "")
             }
-            Log.i(TAG, "Sent DEVICE_CONNECTED: ${deviceInfo.model} (${deviceInfo.serial})")
+
+            if (foregroundApp != null) {
+                Log.i(TAG, "Sent DEVICE_CONNECTED: ${deviceInfo.model} (${deviceInfo.serial}), foreground: ${foregroundApp.appName}")
+            } else {
+                Log.i(TAG, "Sent DEVICE_CONNECTED: ${deviceInfo.model} (${deviceInfo.serial}), no foreground app")
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Error sending DEVICE_CONNECTED", e)
         }
