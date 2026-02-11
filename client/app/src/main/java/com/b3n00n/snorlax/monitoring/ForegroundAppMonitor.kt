@@ -3,6 +3,7 @@ package com.b3n00n.snorlax.monitoring
 import android.app.usage.UsageEvents
 import android.app.usage.UsageStatsManager
 import android.content.Context
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.util.Log
 import kotlinx.coroutines.*
@@ -138,10 +139,8 @@ class ForegroundAppMonitor(
      * @return The foreground app info (package name + human-readable name), or null if unable to determine
      */
     fun queryCurrentForegroundAppInfo(): ForegroundAppInfo? {
-        if (!hasUsageStatsPermission()) return null
-        val packageName = getForegroundApp() ?: return null
-        val appName = getAppName(packageName)
-        return ForegroundAppInfo(packageName, appName)
+        val packageName = currentForegroundApp ?: return null
+        return ForegroundAppInfo(packageName, getAppName(packageName))
     }
 
     /**
